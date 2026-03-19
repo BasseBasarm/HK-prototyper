@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HK A-kasse Rådgiver</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <a href="index.html" style="display:block;padding:8px 20px;background:#003B6F;color:rgba(255,255,255,0.7);font-family:system-ui,sans-serif;font-size:13px;text-decoration:none;font-weight:500;">← Alle koncepter</a>
+  <div id="root"></div>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    // ── Farver ────────────────────────────────────────────────────────
+    const HK_BLUE = "#003B6F";
+    const HK_ACCENT = "#0071CE";
+    const HK_GREEN = "#2E8B57";
+    const HK_RED = "#E94560";
+    const HK_WARN = "#F39C12";
+
+    // ── A-kasse jargon-database ───────────────────────────────────────
+    const JARGON = {
+      "dagpengeperiode": { forklaring: "de 2 år du har ret til dagpenge (inden for en 3-årig periode)", alvorlighed: "høj" },
+      "referenceperiode": { forklaring: "den 3-årige periode inden for hvilken du kan bruge dine 2 års dagpengeret", alvorlighed: "høj" },
+      "genoptjening": { forklaring: "at optjene ret til en ny dagpengeperiode ved at arbejde 1.924 timer (svarende til 1 års fuldtidsarbejde)", alvorlighed: "høj" },
+      "karensdag": { forklaring: "én dag hver 4. måned hvor du ikke får dagpenge (undgås hvis du har arbejdet mere end 148 timer i perioden)", alvorlighed: "høj" },
+      "karensmåned": { forklaring: "den første måned efter endt uddannelse, hvor nyuddannede ikke kan modtage dagpenge", alvorlighed: "høj" },
+      "rådighedsforpligtelse": { forklaring: "kravet om at du aktivt søger arbejde og kan tiltræde et job med én dags varsel", alvorlighed: "høj" },
+      "rådighed": { forklaring: "at du står til rådighed for arbejdsmarkedet: søger job, kan starte med kort varsel, møder op til samtaler", alvorlighed: "høj" },
+      "beskæftigelseskrav": { forklaring: "det antal timer du skal have arbejdet for at få ret til dagpenge (1.924 timer inden for 3 år)", alvorlighed: "høj" },
+      "indkomskrav": { forklaring: "alternativt krav: du skal have haft en samlet indkomst på mindst 263.232 kr. inden for 3 år", alvorlighed: "høj" },
+      "supplerende dagpenge": { forklaring: "dagpenge du kan få hvis du arbejder på nedsat tid (under 37 timer/uge)", alvorlighed: "middel" },
+      "feriedagpenge": { forklaring: "dagpenge du kan få under ferie, hvis du ikke har optjent feriepenge nok", alvorlighed: "middel" },
+      "dimittend": { forklaring: "nyuddannet person der søger dagpenge efter endt uddannelse", alvorlighed: "middel" },
+      "dimittendsats": { forklaring: "den lavere dagpengesats nyuddannede får (ca. 82% af højeste sats i de første 3 måneder, derefter ca. 71%)", alvorlighed: "middel" },
+      "dagpengesats": { forklaring: "det beløb du får udbetalt i dagpenge pr. måned (max ca. 19.800 kr./md. i 2026 før skat)", alvorlighed: "middel" },
+      "g-dage": { forklaring: "ledighedsdage din tidligere arbejdsgiver skal betale for (de første 2 dage efter opsigelse)", alvorlighed: "middel" },
+      "cv-samtale": { forklaring: "obligatorisk samtale med a-kassen inden for de første 2 uger efter tilmelding", alvorlighed: "middel" },
+      "aktiveringsplan": { forklaring: "en plan for hvad du skal gøre for at komme i arbejde (kurser, jobsøgning, praktik)", alvorlighed: "middel" },
+      "joblog": { forklaring: "en log på Jobnet.dk hvor du registrerer dine jobsøgningsaktiviteter", alvorlighed: "middel" },
+      "ydelseskort": { forklaring: "det kort/den oversigt du udfylder for at få dagpenge udbetalt (registrerer timer, sygdom, ferie)", alvorlighed: "middel" },
+      "a-dagpenge": { forklaring: "arbejdsløshedsdagpenge (dagpenge fra din a-kasse ved ledighed)", alvorlighed: "lav" },
+      "selvforskyldt ledig": { forklaring: "at du selv har opsagt dit job eller er blevet fyret pga. din egen adfærd (udløser 3 ugers karantæne)", alvorlighed: "høj" },
+      "karantæne": { forklaring: "en periode (typisk 3 uger) hvor du ikke kan få dagpenge, fx fordi du selv opsagde dit job", alvorlighed: "høj" },
+      "efterløn": { forklaring: "en ordning der giver dig mulighed for at trække dig fra arbejdsmarkedet før folkepensionsalderen", alvorlighed: "middel" },
+      "efterlønsbidrag": { forklaring: "det beløb du indbetaler for at have ret til efterløn", alvorlighed: "middel" },
+      "fleksibel efterløn": { forklaring: "mulighed for at arbejde op til 30 timer/uge mens du er på efterløn", alvorlighed: "middel" },
+    };
+
+    function analyserSvarForJargon(tekst) {
+      const lower = tekst.toLowerCase();
+      const fundne = [];
+      for (const [term, data] of Object.entries(JARGON)) {
+        if (lower.includes(term.toLowerCase())) {
+          fundne.push({ term, ...data });
+        }
+      }
+      fundne.sort((a, b) => {
+        const order = { "høj": 0, "middel": 1, "lav": 2 };
+        return order[a.alvorlighed] - order[b.alvorlighed];
+      });
+      return fundne;
+    }
+
+    // ── Vidensbase per situation ──────────────────────────────────────
+    const VIDENSBASE = {
+      netopledig: {
+        label: "Netop blevet ledig",
+        icon: "📋",
+        color: HK_RED,
+        aabning: "Tak for din henvendelse. Her er et overblik over hvad du skal gøre nu, og hvad du har ret til.",
+        svarblokke: [
+          { title: "Meld dig ledig på Jobnet.dk dag 1", tekst: "Det vigtigste: Meld dig ledig på Jobnet.dk den første dag du er ledig. Gør du det for sent, risikerer du at miste dagpenge for de dage du mangler. Du skal også tilmelde dig på dit lokale jobcenter.", vigtigt: true },
+          { title: "Din tidligere arbejdsgiver betaler de første 2 dage", tekst: "De hedder G-dage. Det er din tidligere arbejdsgivers ansvar at betale dig dagpenge for de første 2 ledighedsdage. Derefter overtager a-kassen.", vigtigt: true },
+          { title: "Dagpengesatsen", tekst: "Du kan få op til ca. 19.800 kr./md. før skat (2026). Det svarer til 90% af din tidligere løn, dog med et loft. Din præcise sats beregnes ud fra din indkomst de seneste 24 måneder.", vigtigt: true },
+          { title: "Du har dagpenge i 2 år", tekst: "Du har ret til dagpenge i 2 år inden for en 3-årig periode. Perioden starter den dag du melder dig ledig.", vigtigt: false },
+          { title: "Karensdag hver 4. måned", tekst: "Hver 4. måned trækkes én dags dagpenge. Du undgår det hvis du har arbejdet mere end 148 timer i de foregående 4 måneder.", vigtigt: false },
+        ],
+        handling: "Har du meldt dig ledig på Jobnet.dk? Hvis ikke, er det det vigtigste du gør i dag.",
+        links: ["jobnet.dk", "hk.dk/akasse/dagpenge"],
+      },
+      opsagtselvfrivilligt: {
+        label: "Sagt op selv",
+        icon: "🚪",
+        color: "#8E44AD",
+        aabning: "Tak for din mail. Reglerne er lidt anderledes, når du selv har sagt op. Her er hvad du skal vide.",
+        svarblokke: [
+          { title: "3 ugers karantæne", tekst: "Når du selv siger op uden gyldig grund, får du 3 ugers karantæne. Det betyder at du ikke kan få dagpenge i de første 3 uger efter du er blevet ledig. Derefter kører dagpengene som normalt.", vigtigt: true },
+          { title: "Gyldig grund kan fjerne karantænen", tekst: "Hvis du sagde op fordi du fx blev mobbet, fik nedsat tid mod din vilje, eller fulgte din ægtefælle til en ny by, kan karantænen bortfalde. Kontakt os, så vurderer vi din situation.", vigtigt: true },
+          { title: "Meld dig ledig med det samme", tekst: "Selvom du har karantæne, skal du stadig melde dig ledig på Jobnet.dk den første dag. Ellers risikerer du at miste dage.", vigtigt: true },
+        ],
+        handling: "Fortæl mig gerne mere om hvorfor du sagde op, så kan jeg vurdere om karantænen kan bortfalde.",
+        links: ["hk.dk/akasse/dagpenge/ret-til-dagpenge", "jobnet.dk"],
+      },
+      nyuddannet: {
+        label: "Nyuddannet / dimittend",
+        icon: "🎓",
+        color: HK_ACCENT,
+        aabning: "Tak for din henvendelse. Her er hvad du skal vide om dagpenge som nyuddannet.",
+        svarblokke: [
+          { title: "Meld dig ind i a-kassen inden 14 dage efter eksamen", tekst: "For at få ret til dagpenge som nyuddannet skal du melde dig ind i a-kassen senest 14 dage efter din sidste eksamen. Overskrider du fristen, skal du optjene ret til dagpenge via arbejde i stedet.", vigtigt: true },
+          { title: "1 måneds venteperiode", tekst: "Som nyuddannet kan du ikke få dagpenge med det samme. Der er en venteperiode på 1 måned efter din uddannelse er afsluttet.", vigtigt: true },
+          { title: "Lavere sats de første måneder", tekst: "Nyuddannede får en lavere dagpengesats end folk med arbejdserfaring. De første 3 måneder er satsen ca. 82% af højeste sats, derefter ca. 71% i resten af det første år.", vigtigt: true },
+          { title: "Du har 2 års dagpengeret", tekst: "Ligesom alle andre har du ret til dagpenge i 2 år inden for en 3-årig periode.", vigtigt: false },
+        ],
+        handling: "Hvornår bestod du din sidste eksamen? Så kan vi beregne hvornår din venteperiode udløber.",
+        links: ["hk.dk/akasse/dagpenge/ret-til-dagpenge"],
+      },
+      supplerende: {
+        label: "Arbejder på deltid",
+        icon: "⏰",
+        color: HK_WARN,
+        aabning: "Tak for din mail. Ja, du kan godt få dagpenge selvom du arbejder på nedsat tid. Her er reglerne.",
+        svarblokke: [
+          { title: "Du kan få supplerende dagpenge", tekst: "Hvis du arbejder under 37 timer om ugen, kan du få dagpenge for de timer du mangler. Det hedder supplerende dagpenge. Du skal stadig stå til rådighed for fuldtidsarbejde.", vigtigt: true },
+          { title: "30 ugers begrænsning", tekst: "Du kan få supplerende dagpenge i op til 30 uger inden for 104 uger. Perioden kan forlænges med 4 uger ad gangen, op til 3 gange (12 uger ekstra).", vigtigt: true },
+          { title: "Stå til rådighed", tekst: "Selvom du har et deltidsjob, skal du kunne tage et fuldtidsjob med én dags varsel. Det er et krav for at modtage supplerende dagpenge.", vigtigt: true },
+          { title: "Genoptjening af retten", tekst: "For at genoptjene ret til supplerende dagpenge skal du have arbejdet mere end 146 timer i 6 ud af 12 måneder (månedslønnet) eller mere end 34 timer i 26 ud af 52 uger (ugelønnet).", vigtigt: false },
+        ],
+        handling: "Hvor mange timer arbejder du om ugen? Så kan jeg beregne hvad du har ret til i supplerende dagpenge.",
+        links: ["hk.dk/akasse/dagpenge/supplerende-dagpenge"],
+      },
+      feriedagpenge: {
+        label: "Ferie under ledighed",
+        icon: "🌴",
+        color: HK_GREEN,
+        aabning: "Tak for din henvendelse. Her er hvad du skal vide om ferie mens du er på dagpenge.",
+        svarblokke: [
+          { title: "Du kan holde ferie med feriedagpenge", tekst: "Hvis du ikke har optjent nok feriepenge fra en arbejdsgiver, kan du holde ferie med feriedagpenge fra a-kassen. Du kan holde op til 25 dages ferie med feriedagpenge.", vigtigt: true },
+          { title: "Beløbet svarer til din dagpengesats", tekst: "Feriedagpenge udbetales med samme sats som dine almindelige dagpenge.", vigtigt: false },
+          { title: "Meld ferien senest 14 dage før", tekst: "Du skal melde din ferie til a-kassen senest 14 dage inden du holder ferie. Gør du det for sent, kan du miste retten til feriedagpenge for den periode.", vigtigt: true },
+          { title: "Du kan kombinere feriepenge og feriedagpenge", tekst: "Har du optjent feriepenge for nogle dage? Dem bruger du først, og så kan du supplere med feriedagpenge for de resterende dage.", vigtigt: false },
+        ],
+        handling: "Hvornår vil du gerne holde ferie? Så tjekker jeg om du har ret til feriedagpenge.",
+        links: ["hk.dk/akasse/dagpenge/feriedagpenge"],
+      },
+      sygdom: {
+        label: "Syg under ledighed",
+        icon: "🤒",
+        color: "#C0392B",
+        aabning: "Tak for din mail. Her er hvad du skal gøre og hvad du har ret til, når du er syg mens du er ledig.",
+        svarblokke: [
+          { title: "Meld dig syg med det samme", tekst: "Ring til jobcentret og a-kassen den første sygedag. Du kan ikke få dagpenge mens du er syg (du er ikke til rådighed), men du kan i stedet få sygedagpenge fra kommunen.", vigtigt: true },
+          { title: "Sygedagpenge fra kommunen", tekst: "Når du er syg som ledig, overgår du til sygedagpenge fra kommunen. Satsen er den samme som dine dagpenge. Du skal melde dig syg til jobcentret.", vigtigt: true },
+          { title: "Sygdom stopper dagpengetælleren", tekst: "Sygdom tæller ikke med i din 2-årige dagpengeperiode. Så du mister ikke dagpengedage mens du er syg.", vigtigt: true },
+          { title: "Meld dig rask igen", tekst: "Når du er rask, skal du melde dig rask til jobcentret og a-kassen. Dagpengene genoptages automatisk.", vigtigt: false },
+        ],
+        handling: "Er du sygemeldt nu? Så hjælper jeg dig med at få meldt det de rigtige steder.",
+        links: ["hk.dk/akasse/dagpenge"],
+      },
+      barsel: {
+        label: "Barsel under ledighed",
+        icon: "👶",
+        color: "#8E44AD",
+        aabning: "Tak for din henvendelse. Her er hvad der sker med dine dagpenge, når du skal på barsel.",
+        svarblokke: [
+          { title: "Du overgår til barselsdagpenge", tekst: "Når du er ledig og skal på barsel, overgår du fra dagpenge til barselsdagpenge. Det er Udbetaling Danmark der står for barselsdagpengene, ikke a-kassen.", vigtigt: true },
+          { title: "Barselsdagpengesatsen", tekst: "I 2026 er den højeste barselsdagpengesats ca. 5.085 kr./uge før skat (137,43 kr./time). Det kan være lavere end dine normale dagpenge.", vigtigt: true },
+          { title: "Din dagpengeperiode stopper", tekst: "Barsel tæller ikke med i din 2-årige dagpengeperiode. Så du mister ikke dagpengedage under barsel.", vigtigt: true },
+          { title: "Efter barsel", tekst: "Når din barsel er slut, melder du dig ledig igen hos a-kassen og jobcentret. Dine dagpenge genoptages der, hvor de slap.", vigtigt: false },
+        ],
+        handling: "Hvornår er din termin? Så kan vi planlægge overgangen fra dagpenge til barselsdagpenge.",
+        links: ["borger.dk/barsel", "hk.dk/akasse/dagpenge"],
+      },
+      genoptjening: {
+        label: "Dagpengene er ved at løbe ud",
+        icon: "⏳",
+        color: HK_RED,
+        aabning: "Tak for din mail. Lad mig give dig et overblik over dine muligheder når dagpengeperioden nærmer sig sin afslutning.",
+        svarblokke: [
+          { title: "Du har ret til dagpenge i 2 år", tekst: "Din dagpengeperiode er 2 år inden for en 3-årig periode. Nærmer du dig de 2 år, er det vigtigt at handle.", vigtigt: true },
+          { title: "Forlængelse med arbejde", tekst: "Har du arbejdet i løbet af din ledighedsperiode? Arbejdstimer kan forlænge din dagpengeperiode. Hver times arbejde giver dig op til 2 timers ekstra dagpengeret.", vigtigt: true },
+          { title: "Genoptjening af ny periode", tekst: "For at få en helt ny 2-årig dagpengeperiode skal du have arbejdet mindst 1.924 timer (svarende til 1 år på fuld tid) inden for 3 år.", vigtigt: true },
+          { title: "Hvad hvis dagpengene løber ud?", tekst: "Kontakt os i god tid. Vi kan hjælpe dig med at afsøge alle muligheder: forlængelse, seniorjob (hvis du er over 55), kontanthjælp eller andre ordninger.", vigtigt: true },
+        ],
+        handling: "Hvor langt er du i din dagpengeperiode? Så kan vi se præcis hvad dine muligheder er.",
+        links: ["hk.dk/akasse/dagpenge/ret-til-dagpenge"],
+      },
+      efterloen: {
+        label: "Efterløn",
+        icon: "🌅",
+        color: "#2980B9",
+        aabning: "Tak for din henvendelse. Efterlønsreglerne kan virke indviklede, men her er det vigtigste.",
+        svarblokke: [
+          { title: "Hvad er efterløn?", tekst: "Efterløn er en ordning der giver dig mulighed for at stoppe med at arbejde eller trappe ned, før du når folkepensionsalderen. Det kræver at du har indbetalt efterlønsbidrag i tilstrækkeligt mange år.", vigtigt: true },
+          { title: "Du kan arbejde op til 30 timer om ugen", tekst: "Du behøver ikke stoppe helt. Med fleksibel efterløn kan du arbejde op til 30 timer om ugen og stadig modtage efterløn for resten.", vigtigt: true },
+          { title: "Efterlønsalderen stiger", tekst: "Efterlønsalderen afhænger af hvornår du er født. Den følger folkepensionsalderen minus 3 år. Tjek din specifikke alder på borger.dk.", vigtigt: false },
+          { title: "Fortrydelsesret: Få dit bidrag tilbage", tekst: "Har du betalt efterlønsbidrag men fortryder? Du kan få pengene udbetalt skattefrit ved folkepensionsalderen, eller mod beskatning hvis du melder dig ud tidligere.", vigtigt: false },
+        ],
+        handling: "Har du indbetalt efterlønsbidrag? Så kan jeg tjekke hvornår du tidligst kan gå på efterløn.",
+        links: ["hk.dk/akasse/efterloen", "borger.dk"],
+      },
+    };
+
+    // ── Mailanalyse-motor ─────────────────────────────────────────────
+    function analyserMail(mailTekst) {
+      const tekst = mailTekst.toLowerCase();
+      const result = { navn: null, situationer: [], spørgsmål: [], tips: [] };
+
+      // Find navn fra signatur
+      const signaturMønstre = [
+        /(?:venlig hilsen|mvh|hilsen|vh|med venlig hilsen)[,.\s\n\r]+([A-ZÆØÅ][a-zæøåé]+)/i,
+        /(?:^|\n)--\s*\n([A-ZÆØÅ][a-zæøåé]+)/m,
+        /(?:^|\n)([A-ZÆØÅ][a-zæøåé]+)\s+[A-ZÆØÅ][a-zæøåé]+\s*\n.*(?:tlf|tel|mob|m:|t:|\+45)/im,
+        /(?:^|\n)([A-ZÆØÅ][a-zæøåé]+)\s*$/m,
+      ];
+      const excludeWords = ["hej", "tak", "kære", "dear", "og", "den", "det", "med", "fra", "til", "jeg", "min", "mit", "mine", "hvis", "kan", "vil", "har", "var", "men", "som", "der", "for", "ved"];
+      for (const m of signaturMønstre) {
+        const match = mailTekst.match(m);
+        if (match && match[1] && !excludeWords.includes(match[1].toLowerCase()) && match[1].length > 1) {
+          result.navn = match[1].trim();
+          break;
+        }
+      }
+
+      // Situationer
+      if (/ledig|fyret|opsagt|fritstil|mistet.*job|arbejdsløs|dagpenge.*første|meld.*ledig/i.test(tekst) && !/selv.*sagt.*op|opsagt.*selv/i.test(tekst)) {
+        result.situationer.push("netopledig");
+      }
+      if (/selv.*sagt.*op|opsagt.*selv|sige.*op|sagt.*op.*selv|frivillig.*opsig/i.test(tekst)) {
+        result.situationer.push("opsagtselvfrivilligt");
+      }
+      if (/nyuddann|dimittend|færdig.*uddannel|bestået.*eksamen|kandidat.*færdig/i.test(tekst)) {
+        result.situationer.push("nyuddannet");
+      }
+      if (/supplerende|deltid|nedsat tid|få timer|deltidsarbejd/i.test(tekst)) {
+        result.situationer.push("supplerende");
+      }
+      if (/ferie.*dagpeng|feriedagpeng|holde.*ferie.*ledig|ferie.*under.*ledig/i.test(tekst)) {
+        result.situationer.push("feriedagpenge");
+      }
+      if (/syg.*ledig|syg.*dagpeng|sygemeldt.*ledig|sygedag/i.test(tekst) && !/barns/i.test(tekst)) {
+        result.situationer.push("sygdom");
+      }
+      if (/barsel.*ledig|barsel.*dagpeng|gravid.*ledig|fødsel.*dagpeng/i.test(tekst)) {
+        result.situationer.push("barsel");
+      }
+      if (/løbe.*ud|snart.*slut|genoptjen|mist.*dagpeng|udløb.*dagpeng|forlæng.*dagpeng/i.test(tekst)) {
+        result.situationer.push("genoptjening");
+      }
+      if (/efterløn|tidlig.*pension|trække.*tilbage|stoppe.*arbejd.*tidlig/i.test(tekst)) {
+        result.situationer.push("efterloen");
+      }
+
+      // Spørgsmål
+      if (/hvad koster|hvor meget|hvad får|dagpengesats|sats|beløb/i.test(tekst)) {
+        result.spørgsmål.push("Spørger til beløb/sats. Giv konkrete tal (max ca. 19.800 kr./md. i 2026).");
+      }
+      if (/hvornår|hvor lang tid|hvorlænge|frist|deadline/i.test(tekst)) {
+        result.spørgsmål.push("Spørger til tidspunkt/frist. Vær præcis med datoer og frister.");
+      }
+      if (/hvordan|hvad gør|hvad skal/i.test(tekst)) {
+        result.spørgsmål.push("Beder om vejledning. Giv trin-for-trin instruktioner.");
+      }
+      if (/kan jeg|har jeg ret|er det muligt|må jeg/i.test(tekst)) {
+        result.spørgsmål.push("Spørger om rettigheder. Svar klart ja/nej med forklaring.");
+      }
+      if (/miste|ryger|forsvinder/i.test(tekst)) {
+        result.spørgsmål.push("Bekymret for at miste noget. Forklar konkret hvad der sker og hvad de kan gøre.");
+      }
+
+      // Tips
+      result.tips.push("Tjek at du bruger medlemmets foretrukne navn.");
+      result.tips.push("Dagpengereglerne er komplekse. Forklar ét trin ad gangen, ikke alt på én gang.");
+      if (result.situationer.includes("netopledig")) {
+        result.tips.push("Vigtigste budskab: Meld dig ledig på Jobnet.dk i dag. Alt andet kan vente.");
+      }
+      if (result.situationer.length === 0) {
+        result.tips.push("Situationen er uklar. Stil opklarende spørgsmål.");
+        result.situationer.push("netopledig");
+      }
+
+      return result;
+    }
+
+    // ── Komponenter ───────────────────────────────────────────────────
+    function AnalyseTag({ label, color }) {
+      return (
+        <span style={{ fontSize: 11, background: `${color}15`, color, padding: "3px 10px", borderRadius: 20, fontWeight: 600 }}>{label}</span>
+      );
+    }
+
+    // ── Hovedapplikation ──────────────────────────────────────────────
+    function AkasseRaadgiver() {
+      const [mailTekst, setMailTekst] = React.useState("");
+      const [analyse, setAnalyse] = React.useState(null);
+      const [isAnalysing, setIsAnalysing] = React.useState(false);
+      const [svarTekst, setSvarTekst] = React.useState("");
+      const [jargonFund, setJargonFund] = React.useState([]);
+      const [checkedItems, setCheckedItems] = React.useState({});
+      const textareaRef = React.useRef(null);
+
+      function handleAnalyser() {
+        if (!mailTekst.trim()) return;
+        setIsAnalysing(true);
+        setCheckedItems({});
+        setSvarTekst("");
+        setJargonFund([]);
+        setTimeout(() => {
+          const result = analyserMail(mailTekst);
+          setAnalyse(result);
+          setIsAnalysing(false);
+        }, 800);
+      }
+
+      function handleReset() {
+        setMailTekst("");
+        setAnalyse(null);
+        setCheckedItems({});
+        setSvarTekst("");
+        setJargonFund([]);
+      }
+
+      function handleTjekSvar() {
+        setJargonFund(analyserSvarForJargon(svarTekst));
+      }
+
+      function toggleCheck(key) {
+        setCheckedItems((prev) => ({ ...prev, [key]: !prev[key] }));
+      }
+
+      const primær = analyse ? VIDENSBASE[analyse.situationer[0]] : null;
+
+      return (
+        <div style={{ minHeight: "100vh", background: "#ECEEF1", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+          {/* Header */}
+          <div style={{ background: HK_BLUE, color: "#FFF", padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 18 }}>📋</span>
+              <span style={{ fontWeight: 700, fontSize: 16 }}>HK A-kasse Rådgiver</span>
+              <span style={{ fontSize: 10, background: HK_RED, color: "#FFF", padding: "2px 8px", borderRadius: 10, fontWeight: 600, marginLeft: 4 }}>PROTOTYPE</span>
+            </div>
+            {analyse && (
+              <button onClick={handleReset} style={{ background: "rgba(255,255,255,0.12)", border: "none", color: "#FFF", padding: "5px 14px", borderRadius: 20, cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>
+                Ny henvendelse
+              </button>
+            )}
+          </div>
+
+          {/* Mailindtastning */}
+          {!analyse && (
+            <div style={{ maxWidth: 700, margin: "0 auto", padding: "32px 20px" }}>
+              <div style={{ textAlign: "center", marginBottom: 28 }}>
+                <h1 style={{ fontSize: 24, color: "#1A1A2E", fontWeight: 600, margin: "0 0 8px" }}>Indsæt medlemmets mail</h1>
+                <p style={{ fontSize: 14, color: "#6B7280", margin: 0, lineHeight: 1.5 }}>
+                  Dashboardet analyserer indholdet, finder situationen og foreslår et klart svar uden a-kasse-jargon.
+                </p>
+              </div>
+
+              <div style={{ background: "#FFF", borderRadius: 16, border: "1px solid #D1D5DB", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+                <textarea
+                  ref={textareaRef}
+                  value={mailTekst}
+                  onChange={(e) => setMailTekst(e.target.value)}
+                  placeholder={"Indsæt medlemmets mail her...\n\nEksempel:\n\"Hej. Jeg er lige blevet fyret og ved ikke hvad jeg skal gøre. Hvornår kan jeg få dagpenge og hvor meget?\n\nLone\""}
+                  style={{ width: "100%", minHeight: 220, padding: 20, border: "none", fontSize: 14, lineHeight: 1.7, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", color: "#1F2937", outline: "none" }}
+                />
+                <div style={{ padding: "12px 20px", borderTop: "1px solid #F3F4F6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: "#9CA3AF" }}>{mailTekst.length > 0 ? `${mailTekst.length} tegn` : ""}</span>
+                  <button
+                    onClick={handleAnalyser}
+                    disabled={!mailTekst.trim() || isAnalysing}
+                    style={{ padding: "10px 28px", background: mailTekst.trim() ? HK_BLUE : "#D1D5DB", color: "#FFF", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: mailTekst.trim() ? "pointer" : "default", fontFamily: "inherit" }}
+                  >
+                    {isAnalysing ? "Analyserer..." : "Analysér mail →"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Eksempler */}
+              <div style={{ marginTop: 20 }}>
+                <p style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 8 }}>Prøv med et eksempel:</p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[
+                    { label: "Netop ledig", tekst: "Hej HK. Jeg er lige blevet fyret fra mit job i Bilka. Hvad skal jeg gøre nu? Hvornår kan jeg få dagpenge og hvor meget får jeg?\n\nLone Hansen\nTlf: 28 45 92 11" },
+                    { label: "Sagt op selv", tekst: "Hej. Jeg har selv sagt mit job op fordi jeg ikke kunne holde det ud mere. Kan jeg stadig få dagpenge? Jeg er bange for at jeg slet ikke kan få noget.\n\nMikkel" },
+                    { label: "Nyuddannet", tekst: "Hejsa. Jeg er lige blevet færdig med min uddannelse som kontorassistent og har meldt mig ind i HK. Hvornår kan jeg begynde at få dagpenge?\n\nSara" },
+                    { label: "Supplerende dagpenge", tekst: "Hej. Jeg arbejder kun 20 timer om ugen lige nu. Kan jeg få noget fra a-kassen oveni? Og hvor længe?\n\nThomas" },
+                  ].map((ex, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setMailTekst(ex.tekst)}
+                      style={{ padding: "6px 14px", background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 12, color: HK_ACCENT, cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}
+                    >
+                      {ex.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Analyseresultat */}
+          {analyse && (
+            <div style={{ display: "flex", maxWidth: 1140, margin: "0 auto", gap: 20, padding: "20px 16px", alignItems: "start" }}>
+              {/* Venstre */}
+              <div style={{ width: 340, flexShrink: 0 }}>
+                <div style={{ background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: 18, marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Medlemmets mail</div>
+                  <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, whiteSpace: "pre-wrap", maxHeight: 180, overflowY: "auto" }}>{mailTekst}</div>
+                </div>
+
+                <div style={{ background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: 18, marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Analyse</div>
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 4 }}>Navn</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: analyse.navn ? HK_GREEN : HK_RED }}>{analyse.navn || "Ikke fundet"}</div>
+                  </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6 }}>Situation</div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {analyse.situationer.map((s) => { const v = VIDENSBASE[s]; return v ? <AnalyseTag key={s} label={`${v.icon} ${v.label}`} color={v.color} /> : null; })}
+                    </div>
+                  </div>
+                  {analyse.spørgsmål.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6 }}>Spørgsmål at besvare</div>
+                      {analyse.spørgsmål.map((sp, i) => (
+                        <div key={i} style={{ display: "flex", gap: 8, alignItems: "start", marginBottom: 6 }}>
+                          <span style={{ color: HK_RED, fontWeight: 700, flexShrink: 0, fontSize: 12 }}>!</span>
+                          <span style={{ fontSize: 12, color: "#374151", lineHeight: 1.4 }}>{sp}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ background: `${HK_WARN}08`, border: `1px solid ${HK_WARN}25`, borderRadius: 14, padding: 18 }}>
+                  <div style={{ fontSize: 11, color: HK_WARN, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Tips</div>
+                  {analyse.tips.map((tip, i) => (
+                    <div key={i} style={{ display: "flex", gap: 8, alignItems: "start", marginBottom: 8 }}>
+                      <span style={{ color: HK_WARN, fontWeight: 700, flexShrink: 0, fontSize: 11 }}>→</span>
+                      <span style={{ fontSize: 12, color: "#4B5563", lineHeight: 1.5 }}>{tip}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Højre */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {primær && (
+                  <>
+                    <div style={{ background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: 22, marginBottom: 14 }}>
+                      <h2 style={{ margin: "0 0 4px", fontSize: 18, color: "#1A1A2E", fontWeight: 600 }}>Foreslået svar</h2>
+                      <p style={{ margin: "0 0 16px", fontSize: 14, color: "#6B7280", lineHeight: 1.5 }}>
+                        "Hej {analyse.navn || "[navn]"} — {primær.aabning.charAt(0).toLowerCase() + primær.aabning.slice(1)}"
+                      </p>
+                      {primær.svarblokke.map((blok, i) => (
+                        <div key={i} style={{ padding: "12px 14px", borderRadius: 10, background: blok.vigtigt ? `${primær.color}06` : "#FAFAFA", borderLeft: `3px solid ${blok.vigtigt ? primær.color : "#E5E7EB"}`, marginBottom: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                            <h4 style={{ margin: 0, fontSize: 13, color: "#1A1A2E", fontWeight: 600 }}>{blok.title}</h4>
+                            {blok.vigtigt && <span style={{ fontSize: 9, background: `${primær.color}15`, color: primær.color, padding: "2px 7px", borderRadius: 8, fontWeight: 700 }}>VIGTIGT</span>}
+                          </div>
+                          <p style={{ margin: 0, fontSize: 13, color: "#4B5563", lineHeight: 1.6 }}>{blok.tekst}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Andre situationer */}
+                    {analyse.situationer.length > 1 && (
+                      <div style={{ background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: 22, marginBottom: 14 }}>
+                        <h3 style={{ margin: "0 0 12px", fontSize: 14, color: "#6B7280", fontWeight: 600 }}>Relaterede emner</h3>
+                        {analyse.situationer.slice(1).map((s) => {
+                          const v = VIDENSBASE[s];
+                          if (!v) return null;
+                          return (
+                            <div key={s} style={{ marginBottom: 12 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                                <span>{v.icon}</span>
+                                <span style={{ fontWeight: 600, fontSize: 14, color: "#1A1A2E" }}>{v.label}</span>
+                              </div>
+                              {v.svarblokke.filter((b) => b.vigtigt).map((blok, i) => (
+                                <div key={i} style={{ padding: "10px 14px", background: "#FAFAFA", borderRadius: 8, borderLeft: `3px solid ${v.color}`, marginBottom: 6 }}>
+                                  <h4 style={{ margin: "0 0 2px", fontSize: 12, color: "#1A1A2E", fontWeight: 600 }}>{blok.title}</h4>
+                                  <p style={{ margin: 0, fontSize: 12, color: "#4B5563", lineHeight: 1.5 }}>{blok.tekst}</p>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Næste skridt */}
+                    <div style={{ background: `${HK_GREEN}08`, border: `1px solid ${HK_GREEN}25`, borderRadius: 14, padding: "14px 18px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                      <span style={{ fontSize: 18, flexShrink: 0 }}>✅</span>
+                      <div>
+                        <div style={{ fontSize: 10, color: HK_GREEN, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Afslut med et konkret næste skridt</div>
+                        <p style={{ margin: 0, fontSize: 13, color: "#374151" }}>"{primær.handling}"</p>
+                      </div>
+                    </div>
+
+                    {/* Links */}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                      {primær.links.map((link, i) => (
+                        <div key={i} style={{ padding: "6px 12px", background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 11, color: HK_ACCENT, fontWeight: 600 }}>
+                          🔗 {link}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Jargon-tjek */}
+                    <div style={{ background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: 18, marginBottom: 14 }}>
+                      <h4 style={{ margin: "0 0 10px", fontSize: 11, color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
+                        Skriv dit svar og tjek for jargon
+                      </h4>
+                      <textarea
+                        value={svarTekst}
+                        onChange={(e) => { setSvarTekst(e.target.value); setJargonFund([]); }}
+                        placeholder="Skriv dit svar til medlemmet her. Dashboardet tjekker for a-kasse-jargon og foreslår klarere alternativer."
+                        style={{ width: "100%", minHeight: 140, padding: 14, border: "1px solid #E5E7EB", borderRadius: 10, fontSize: 13, lineHeight: 1.7, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", color: "#1F2937", outline: "none" }}
+                      />
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+                        <span style={{ fontSize: 11, color: "#9CA3AF" }}>{svarTekst.length > 0 ? `${svarTekst.length} tegn` : ""}</span>
+                        <button
+                          onClick={handleTjekSvar}
+                          disabled={!svarTekst.trim()}
+                          style={{ padding: "8px 20px", background: svarTekst.trim() ? HK_WARN : "#D1D5DB", color: "#FFF", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: svarTekst.trim() ? "pointer" : "default", fontFamily: "inherit" }}
+                        >
+                          Tjek for jargon
+                        </button>
+                      </div>
+
+                      {jargonFund.length > 0 && (
+                        <div style={{ marginTop: 14, padding: 14, background: `${HK_RED}06`, border: `1px solid ${HK_RED}20`, borderRadius: 10 }}>
+                          <div style={{ fontSize: 12, color: HK_RED, fontWeight: 700, marginBottom: 10 }}>
+                            {jargonFund.length} fagudtryk fundet. Overvej at forklare eller erstatte:
+                          </div>
+                          {jargonFund.map((j, i) => (
+                            <div key={i} style={{ display: "flex", gap: 10, alignItems: "start", marginBottom: 8, paddingBottom: 8, borderBottom: i < jargonFund.length - 1 ? "1px solid #F3E8E8" : "none" }}>
+                              <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 6, fontWeight: 700, flexShrink: 0, marginTop: 2, background: j.alvorlighed === "høj" ? `${HK_RED}15` : j.alvorlighed === "middel" ? `${HK_WARN}15` : "#F3F4F6", color: j.alvorlighed === "høj" ? HK_RED : j.alvorlighed === "middel" ? HK_WARN : "#6B7280" }}>
+                                {j.alvorlighed === "høj" ? "!!!" : j.alvorlighed === "middel" ? "!!" : "!"}
+                              </span>
+                              <div>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: "#1A1A2E" }}>"{j.term}"</span>
+                                <div style={{ fontSize: 12, color: "#4B5563", marginTop: 2 }}>
+                                  Skriv i stedet: <em>"{j.forklaring}"</em>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {jargonFund.length === 0 && svarTekst.length > 20 && (
+                        <div style={{ marginTop: 14, padding: 12, background: `${HK_GREEN}08`, border: `1px solid ${HK_GREEN}20`, borderRadius: 10, fontSize: 13, color: HK_GREEN, fontWeight: 600 }}>
+                          Ingen a-kasse-jargon fundet. Godt arbejde!
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Kvalitetstjek */}
+                    <div style={{ background: "#FFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: 18 }}>
+                      <h4 style={{ margin: "0 0 10px", fontSize: 11, color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>Kvalitetstjek</h4>
+                      {[
+                        `Bruger du "${analyse.navn || "???"}" og ikke et andet navn?`,
+                        "Besvarer du det konkrete spørgsmål med konkrete tal og datoer?",
+                        "Forklarer du ét trin ad gangen (ikke alt på én gang)?",
+                        "Er a-kasse-jargon forklaret i hverdagssprog?",
+                        "Afslutter du med ét klart næste skridt?",
+                        "Er Jobnet.dk nævnt, hvis det er relevant?",
+                      ].map((item, i) => (
+                        <label key={i} style={{ display: "flex", gap: 10, alignItems: "start", marginBottom: 7, fontSize: 12, color: "#374151", cursor: "pointer" }}>
+                          <input type="checkbox" checked={!!checkedItems[i]} onChange={() => toggleCheck(i)} style={{ marginTop: 2, accentColor: HK_GREEN }} />
+                          <span style={{ textDecoration: checkedItems[i] ? "line-through" : "none", opacity: checkedItems[i] ? 0.5 : 1 }}>{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(AkasseRaadgiver));
+  </script>
+</body>
+</html>

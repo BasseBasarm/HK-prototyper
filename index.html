@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tre koncepter til bedre medlemsoplevelse</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(160deg, #003B6F 0%, #005A9E 60%, #0071CE 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .container { max-width: 460px; width: 100%; text-align: center; }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      margin-bottom: 24px;
+    }
+    h1 {
+      color: #FFF;
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1.25;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: rgba(255,255,255,0.7);
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+    .links { display: flex; flex-direction: column; gap: 12px; margin-bottom: 40px; }
+    .link-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 22px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      text-decoration: none;
+      color: #FFF;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(8px);
+    }
+    .link-card:hover {
+      background: rgba(255,255,255,0.13);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    .link-icon {
+      width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 12px; font-size: 22px; flex-shrink: 0;
+    }
+    .link-text h3 { font-size: 16px; font-weight: 600; margin-bottom: 3px; text-align: left; }
+    .link-text p { font-size: 13px; color: rgba(255,255,255,0.6); text-align: left; line-height: 1.4; }
+    .link-arrow { margin-left: auto; font-size: 18px; opacity: 0.4; flex-shrink: 0; }
+    .divider { height: 1px; background: rgba(255,255,255,0.1); margin: 4px 0; }
+    .footer { color: rgba(255,255,255,0.35); font-size: 13px; line-height: 1.7; }
+    .footer a { color: rgba(255,255,255,0.55); text-decoration: none; }
+    .footer a:hover { color: rgba(255,255,255,0.8); }
+    .tag {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      padding: 2px 8px; border-radius: 10px; margin-left: 8px; vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="badge">Tre koncepter</div>
+
+    <h1>Bedre oplevelser for HK's medlemmer</h1>
+
+    <p class="subtitle">
+      Interaktive prototyper der viser, hvordan HK kan kommunikere klarere, hjælpe hurtigere og møde medlemmerne der, hvor de er.
+    </p>
+
+    <div class="links">
+      <a href="overenskomst.html" class="link-card">
+        <div class="link-icon" style="background: rgba(0,113,206,0.2);">
+          <span>📖</span>
+        </div>
+        <div class="link-text">
+          <h3>Tal med din overenskomst <span class="tag" style="background: rgba(0,113,206,0.25); color: #7EC8F0;">MEDLEM</span></h3>
+          <p>Stil et spørgsmål i hverdagssprog. Få svar fra din overenskomst uden at læse 80 sider.</p>
+        </div>
+        <span class="link-arrow">›</span>
+      </a>
+
+      <a href="karrierevejviser.html" class="link-card">
+        <div class="link-icon" style="background: rgba(46,139,87,0.2);">
+          <span>🧭</span>
+        </div>
+        <div class="link-text">
+          <h3>Karrierevejviser <span class="tag" style="background: rgba(46,139,87,0.25); color: #7ED4A6;">INTERN</span></h3>
+          <p>Værktøj til Karrieretelefonens vejledere. Stil spørgsmål, klik af, få overblik over medlemmets muligheder.</p>
+        </div>
+        <span class="link-arrow">›</span>
+      </a>
+
+      <a href="akasse.html" class="link-card">
+        <div class="link-icon" style="background: rgba(233,69,96,0.15);">
+          <span>📋</span>
+        </div>
+        <div class="link-text">
+          <h3>A-kasse Rådgiver <span class="tag" style="background: rgba(233,69,96,0.2); color: #F0A0B0;">INTERN</span></h3>
+          <p>Indsæt en medlemsmail. Dashboardet analyserer indholdet, foreslår et klart svar og tjekker for jargon.</p>
+        </div>
+        <span class="link-arrow">›</span>
+      </a>
+    </div>
+
+    <div class="footer">
+      Prototype. Indhold baseret på offentligt tilgængelige overenskomstresultater. Ikke juridisk rådgivning.<br><br>
+      Koncepter af Bastian Kjar<br>
+      <a href="mailto:bastiankjar@gmail.com">bastiankjar@gmail.com</a> · 26 23 79 45
+    </div>
+  </div>
+</body>
+</html>

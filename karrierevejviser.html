@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HK Karrierevejviser</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" style="display:block;padding:8px 20px;background:#003B6F;color:rgba(255,255,255,0.7);font-family:system-ui,sans-serif;font-size:13px;text-decoration:none;font-weight:500;">← Alle koncepter</a>
+  <div id="root"></div>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    // ── Data ──────────────────────────────────────────────────────────
+    const FAGOMRAADER = [
+      { id: "kontor", label: "Kontor & Administration", icon: "🏢", desc: "Kontorfunktionær, sekretær, receptionist, bogholder" },
+      { id: "handel", label: "Handel & Butik", icon: "🛒", desc: "Butiksassistent, visual merchandiser, salgskonsulent" },
+      { id: "sundhed", label: "Sundhed & Offentlig", icon: "🏥", desc: "Lægesekretær, sagsbehandler, sundhedsadministration" },
+      { id: "lab", label: "Laborant & Miljø", icon: "🔬", desc: "Laborant, laboratorieteknikker, miljømedarbejder, kvalitetskontrol" },
+      { id: "it", label: "IT & Digital", icon: "💻", desc: "IT-supporter, webmaster, digital koordinator" },
+      { id: "ledelse", label: "Ledelse & HR", icon: "👔", desc: "Teamleder, HR-medarbejder, personalechef" },
+    ];
+
+    const UDDANNELSER = [
+      { id: "ufaglaert", label: "Ufaglært / Ingen formel uddannelse", icon: "📋" },
+      { id: "elev", label: "Elevuddannelse (kontorelev, butikselev, lægesekretær)", icon: "🎓" },
+      { id: "kort", label: "Kort videregående (fx laborant, handelsøkonom)", icon: "📚" },
+      { id: "bachelor", label: "Mellemlang videregående (fx administrationsbachelor, PBA lab/fødevare)", icon: "🎯" },
+    ];
+
+    const BEHOV = [
+      { id: "skifte", label: "Karriereskift", icon: "🔄", desc: "Vil i en helt ny retning" },
+      { id: "opkval", label: "Opkvalificering", icon: "📈", desc: "Vil blive bedre i nuværende rolle" },
+      { id: "videre", label: "Videreuddannelse", icon: "🎓", desc: "Vil tage en ny eller højere uddannelse" },
+      { id: "loen", label: "Løn & forhandling", icon: "💰", desc: "Vil have hjælp til lønforhandling" },
+      { id: "jobsoeg", label: "Jobsøgning", icon: "🔍", desc: "Er ledig eller vil finde nyt job" },
+    ];
+
+    const ERFARING = [
+      { id: "0-2", label: "0–2 år", icon: "🌱" },
+      { id: "3-5", label: "3–5 år", icon: "🌿" },
+      { id: "6-10", label: "6–10 år", icon: "🌳" },
+      { id: "10+", label: "Mere end 10 år", icon: "🏔️" },
+    ];
+
+    // ── Resultatmotor ─────────────────────────────────────────────────
+    function getResults(answers) {
+      const { fagomraade, uddannelse, behov, erfaring } = answers;
+      const results = { uddannelsesveje: [], overenskomst: [], tips: [], hurtiglinks: [] };
+
+      // Uddannelsesveje baseret på kombination
+      if (behov === "videre" || behov === "skifte") {
+        if (uddannelse === "ufaglaert") {
+          results.uddannelsesveje.push(
+            { title: "Kontoruddannelse (EUD)", duration: "2 år", desc: "Giver grundlag for administrativt arbejde. Mulighed for specialisering i offentlig administration, økonomi, kommunikation m.m.", fit: "Perfekt første skridt" },
+            { title: "Handelsuddannelse (EUD)", duration: "2 år", desc: "Bred butiksrettet uddannelse med fokus på salg, kundeservice og detail.", fit: "God start i butik/handel" },
+            { title: "Lægesekretæruddannelse", duration: "ca. 2 år", desc: "Uddannelse inden for sundhedsadministration. Kombinerer IT, kommunikation og sundhedsfaglig viden.", fit: "Stabil karrierevej i sundhed" }
+          );
+        }
+        if (uddannelse === "elev") {
+          results.uddannelsesveje.push(
+            { title: "Handelsøkonom (KVU)", duration: "2 år", desc: "Bygger videre på elevuddannelsen med fokus på salg, markedsføring og økonomi.", fit: "Naturlig overbygning" },
+            { title: "Markedsføringsøkonom (KVU)", duration: "2 år", desc: "Fokus på digital markedsføring, kampagner og strategisk kommunikation.", fit: "Populært næste skridt" },
+            { title: "Administrationsbachelor", duration: "3½ år", desc: "Bred bachelor der kombinerer jura, økonomi og organisation. Mange jobmuligheder i det offentlige.", fit: "Stærk offentlig profil" }
+          );
+        }
+        if (uddannelse === "kort") {
+          results.uddannelsesveje.push(
+            { title: "Top-up bachelor (fx PBA i international handel eller lab/fødevare)", duration: "1½ år", desc: "Byg direkte oven på din KVU. Laboranter kan tage PBA i laboratorium-, fødevare- og procesteknologi.", fit: "Direkte overbygning" },
+            { title: "Diplomuddannelse i ledelse", duration: "2-3 år deltid", desc: "Fleksibel lederuddannelse du kan tage sideløbende med arbejde.", fit: "Lederambitioner" },
+            { title: "HD 1. del + 2. del", duration: "2+2 år deltid", desc: "Anerkendt erhvervsøkonomisk uddannelse. Kombinerer teori og praksis.", fit: "Karriereløft i økonomi" }
+          );
+        }
+        if (uddannelse === "bachelor") {
+          results.uddannelsesveje.push(
+            { title: "Kandidatuddannelse (fx cand.soc. eller cand.merc.)", duration: "2 år", desc: "Mulighed for at specialisere sig yderligere. Åbner for lederstillinger og specialistroller.", fit: "Akademisk fordybelse" },
+            { title: "Master i offentlig ledelse (MPG/MPA)", duration: "2 år deltid", desc: "For erfarne i offentlig sektor. Fokus på ledelse, strategi og forandring.", fit: "Topledelse i det offentlige" },
+            { title: "Diplomuddannelse i projektledelse", duration: "1-2 år deltid", desc: "Praktisk lederuddannelse med fokus på projektledelse og procesoptimering.", fit: "Projektleder-sporet" }
+          );
+        }
+      }
+
+      if (behov === "opkval") {
+        if (fagomraade === "kontor") {
+          results.uddannelsesveje.push(
+            { title: "AMU-kurser i regnskab & bogføring", duration: "1-5 dage", desc: "Korte, intensive kurser. Ofte gratis via overenskomsten.", fit: "Hurtig opkvalificering" },
+            { title: "Microsoft Office specialisering", duration: "1-3 dage", desc: "Bliv ekspert i Excel, Power BI eller andre Office-værktøjer.", fit: "Daglig effektivisering" },
+            { title: "Digital kommunikation & SoMe", duration: "2-5 dage", desc: "Styrk dine digitale kompetencer inden for content og sociale medier.", fit: "Fremtidssikring" }
+          );
+        } else if (fagomraade === "handel") {
+          results.uddannelsesveje.push(
+            { title: "Visual merchandising", duration: "2-3 dage", desc: "Lær at opsætte attraktive butiksmiljøer og vinduesdisplays.", fit: "Specialisering i butik" },
+            { title: "Salgstræning & kundeservice", duration: "1-3 dage", desc: "Styrk dine salgskompetencer og kunderelationer.", fit: "Bedre performance" },
+            { title: "E-commerce & digital handel", duration: "3-5 dage", desc: "Bliv klar til fremtidens detailhandel med online kompetencer.", fit: "Digital omstilling" }
+          );
+        } else if (fagomraade === "sundhed") {
+          results.uddannelsesveje.push(
+            { title: "Sundhedsplatformen / EPJ-systemer", duration: "1-3 dage", desc: "Bliv skarp på de elektroniske patientjournalsystemer.", fit: "Dagligt værktøj" },
+            { title: "Sundhedsjura & GDPR", duration: "2 dage", desc: "Forstå de juridiske rammer i sundhedssektoren.", fit: "Vigtig faglighed" },
+            { title: "Kommunikation med patienter", duration: "1-2 dage", desc: "Styrk dine samtale- og kommunikationskompetencer.", fit: "Bedre borgerservice" }
+          );
+        } else if (fagomraade === "lab") {
+          results.uddannelsesveje.push(
+            { title: "GLP/GMP-certificering", duration: "2-5 dage", desc: "Good Laboratory/Manufacturing Practice. Essentiel certificering inden for pharma og fødevarer.", fit: "Branchestandard" },
+            { title: "Kvalitetsstyring & ISO-kurser", duration: "3-5 dage", desc: "ISO 17025, ISO 9001 — kvalitetssikring i laboratoriet.", fit: "Efterspurgt kompetence" },
+            { title: "Avancerede analysemetoder", duration: "2-5 dage", desc: "HPLC, GC-MS, PCR eller andre specialiserede analysemetoder.", fit: "Faglig fordybelse" }
+          );
+        } else if (fagomraade === "it") {
+          results.uddannelsesveje.push(
+            { title: "ITIL & servicemanagementsystem", duration: "3-5 dage", desc: "Certificering i IT service management.", fit: "Branchestandard" },
+            { title: "Cybersikkerhed basics", duration: "2-3 dage", desc: "Grundlæggende IT-sikkerhed og databeskyttelse.", fit: "Høj efterspørgsel" },
+            { title: "Cloud & infrastruktur", duration: "3-5 dage", desc: "Azure, AWS eller Google Cloud kompetencer.", fit: "Fremtidens IT" }
+          );
+        } else {
+          results.uddannelsesveje.push(
+            { title: "Diplomuddannelse i ledelse", duration: "2-3 år deltid", desc: "Styrk dine ledelseskompetencer med anerkendt uddannelse.", fit: "Lederudvikling" },
+            { title: "Coaching & konflikthåndtering", duration: "3-5 dage", desc: "Praktiske værktøjer til daglig ledelse og medarbejderudvikling.", fit: "Bløde kompetencer" },
+            { title: "HR-jura & personalejura", duration: "2-3 dage", desc: "Forstå de juridiske rammer for ansættelsesforhold.", fit: "Vigtigt fundament" }
+          );
+        }
+      }
+
+      if (behov === "loen") {
+        results.tips.push(
+          "Brug HK's lønstatistik til at finde gennemsnitslønnen for din stillingsbetegnelse og erfaring.",
+          "Forbered 3 konkrete eksempler på, hvordan du har skabt værdi for virksomheden.",
+          "Tjek din overenskomst — du kan have ret til lønjustering ved nye ansvarsområder.",
+          "Book en samtale med HK's karrierevejleder for at forberede din forhandling."
+        );
+      }
+
+      if (behov === "jobsoeg") {
+        results.tips.push(
+          "Tilmeld dig HK JobBørs — her matcher vi kvalificerede kandidater med virksomheder.",
+          "Brug HK's gratis CV- og ansøgningstjek, og få feedback fra en karrierevejleder.",
+          "Deltag i HK's drop-in online sessioner om jobsøgning (nyt tilbud!).",
+          "Opdater din LinkedIn-profil — vi tilbyder gratis kurser i LinkedIn-optimering."
+        );
+      }
+
+      // Overenskomstrettigheder
+      if (fagomraade === "kontor" || fagomraade === "it" || fagomraade === "ledelse") {
+        results.overenskomst.push(
+          { title: "Selvvalgt uddannelse", desc: "Op til 2 ugers selvvalgt uddannelse om året under HK Privat's overenskomst." },
+          { title: "Ret- og pligtuddannelse", desc: "Op til 10 dages ret- og pligtuddannelse med fuld løn pr. år." },
+          { title: "Fritvalgskonto", desc: "Din fritvalgskonto kan bruges til at finansiere yderligere uddannelse." }
+        );
+      }
+      if (fagomraade === "handel") {
+        results.overenskomst.push(
+          { title: "Butiksoverenskomsten", desc: "Ret til efter- og videreuddannelse. Nye regler mod nultimerskontrakter." },
+          { title: "Detailhandelens Kompetencefond", desc: "Søg støtte til kurser og uddannelse via kompetencefonden." },
+          { title: "Fritvalgskonto", desc: "Kan bruges til uddannelse, pension eller frihed." }
+        );
+      }
+      if (fagomraade === "sundhed") {
+        results.overenskomst.push(
+          { title: "Kommunal/regional overenskomst", desc: "Ret til kompetenceudvikling og efteruddannelse i offentlig sektor." },
+          { title: "Den Kommunale Kompetencefond", desc: "Søg tilskud til uddannelse gennem kompetencefondene." },
+          { title: "MUS-samtale", desc: "Brug din MUS-samtale aktivt til at aftale uddannelsesplan." }
+        );
+      }
+      if (fagomraade === "lab") {
+        results.overenskomst.push(
+          { title: "Dansk Laborant-Forening (DL-F)", desc: "10.000 medlemmer stærkt netværk. Faglige arrangementer, rådgivning og sparring via DL-F/HK." },
+          { title: "Kompetenceudviklingsfonde", desc: "Søg tilskud til efter- og videreuddannelse via din overenskomsts kompetencefond." },
+          { title: "Selvvalgt uddannelse", desc: "Ret til selvvalgt uddannelse under HK Privats overenskomster — også for laboranter." }
+        );
+      }
+
+      // Hurtiglinks
+      results.hurtiglinks = [
+        { label: "HK's gratis kurser (Upgrade)", url: "hk.dk/kurser" },
+        { label: "Lønstatistik", url: "hk.dk/loenstatistik" },
+        { label: "Book karrierevejledning", url: "hk.dk/karriere/karrieretelefonen" },
+        { label: "HK JobBørs", url: "hk.dk/karriere/jobboers" },
+        { label: "Uddannelsesoverblik", url: "hk.dk/karriere/uddannelse" },
+        { label: "Selvvalgt uddannelse", url: "hk.dk/selvvalgtuddannelse" },
+      ];
+
+      // Generelle tips baseret på erfaring
+      if (erfaring === "0-2") {
+        results.tips.push("Som relativt ny på arbejdsmarkedet: Fokus på at opbygge netværk og få bred erfaring.");
+      } else if (erfaring === "3-5") {
+        results.tips.push("Med 3-5 års erfaring er det et godt tidspunkt at specialisere sig eller tage en overbygning.");
+      } else if (erfaring === "6-10") {
+        results.tips.push("Med solid erfaring kan det være tid til at overveje ledelse, specialisering eller brancheskift.");
+      } else if (erfaring === "10+") {
+        results.tips.push("Din erfaring er guld værd. Overvej mentor-roller, ledelse eller at udnytte din senioritet i lønforhandlinger.");
+      }
+
+      // Fallback
+      if (results.uddannelsesveje.length === 0 && behov !== "loen" && behov !== "jobsoeg") {
+        results.uddannelsesveje.push(
+          { title: "AMU-kurser inden for dit felt", duration: "1-5 dage", desc: "Korte, praksisnære kurser. Ofte med løn under uddannelse.", fit: "Hurtig opkvalificering" },
+          { title: "HK's gratis onlinekurser (Upgrade)", duration: "Selvstudium", desc: "Gratis kurser i Excel, kommunikation, digitale værktøjer m.m.", fit: "Fleksibel læring" }
+        );
+      }
+
+      return results;
+    }
+
+    // ── Komponenter ───────────────────────────────────────────────────
+    const HK_BLUE = "#003B6F";
+    const HK_LIGHT = "#E8F0FE";
+    const HK_ACCENT = "#0071CE";
+    const HK_GREEN = "#2E8B57";
+
+    function ProgressBar({ step, total }) {
+      return (
+        <div style={{ display: "flex", gap: 6, marginBottom: 32 }}>
+          {Array.from({ length: total }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                flex: 1,
+                height: 6,
+                borderRadius: 3,
+                background: i <= step ? HK_ACCENT : "#D1D5DB",
+                transition: "background 0.4s ease",
+              }}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    function OptionCard({ icon, label, desc, selected, onClick }) {
+      return (
+        <button
+          onClick={onClick}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            width: "100%",
+            padding: "14px 18px",
+            border: selected ? `2px solid ${HK_ACCENT}` : "2px solid #E5E7EB",
+            borderRadius: 12,
+            background: selected ? HK_LIGHT : "#FFFFFF",
+            cursor: "pointer",
+            textAlign: "left",
+            transition: "all 0.2s ease",
+            fontSize: 15,
+            fontFamily: "inherit",
+          }}
+        >
+          <span style={{ fontSize: 26, flexShrink: 0 }}>{icon}</span>
+          <div>
+            <div style={{ fontWeight: 600, color: HK_BLUE, marginBottom: desc ? 2 : 0 }}>{label}</div>
+            {desc && <div style={{ fontSize: 13, color: "#6B7280" }}>{desc}</div>}
+          </div>
+          {selected && (
+            <span style={{ marginLeft: "auto", color: HK_ACCENT, fontSize: 20, flexShrink: 0 }}>✓</span>
+          )}
+        </button>
+      );
+    }
+
+    function ResultCard({ title, duration, desc, fit }) {
+      return (
+        <div
+          style={{
+            padding: 18,
+            border: "1px solid #E5E7EB",
+            borderRadius: 12,
+            background: "#FFF",
+            marginBottom: 10,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 6 }}>
+            <h4 style={{ margin: 0, color: HK_BLUE, fontSize: 16 }}>{title}</h4>
+            {duration && (
+              <span
+                style={{
+                  fontSize: 12,
+                  background: HK_LIGHT,
+                  color: HK_ACCENT,
+                  padding: "3px 10px",
+                  borderRadius: 20,
+                  whiteSpace: "nowrap",
+                  fontWeight: 600,
+                }}
+              >
+                {duration}
+              </span>
+            )}
+          </div>
+          <p style={{ margin: "6px 0", color: "#4B5563", fontSize: 14, lineHeight: 1.5 }}>{desc}</p>
+          {fit && (
+            <span
+              style={{
+                fontSize: 12,
+                color: HK_GREEN,
+                fontWeight: 600,
+                background: "#ECFDF5",
+                padding: "2px 10px",
+                borderRadius: 20,
+              }}
+            >
+              {fit}
+            </span>
+          )}
+        </div>
+      );
+    }
+
+    // ── Hovedapplikation ──────────────────────────────────────────────
+    function KarriereVejviser() {
+      const [step, setStep] = React.useState(-1); // -1 = splash
+      const [answers, setAnswers] = React.useState({});
+      const [showReveal, setShowReveal] = React.useState(false);
+      const [fadeIn, setFadeIn] = React.useState(true);
+      const containerRef = React.useRef(null);
+
+      const totalSteps = 4;
+
+      React.useEffect(() => {
+        setFadeIn(false);
+        const t = setTimeout(() => setFadeIn(true), 50);
+        return () => clearTimeout(t);
+      }, [step]);
+
+      function select(key, value) {
+        setAnswers((prev) => ({ ...prev, [key]: value }));
+        setTimeout(() => setStep((s) => s + 1), 300);
+      }
+
+      function reset() {
+        setStep(-1);
+        setAnswers({});
+        setShowReveal(false);
+      }
+
+      const results = step >= totalSteps ? getResults(answers) : null;
+
+      // ── Splash ──
+      if (step === -1) {
+        return (
+          <div
+            style={{
+              minHeight: "100vh",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: `linear-gradient(135deg, ${HK_BLUE} 0%, #005A9E 100%)`,
+              fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+              padding: 20,
+            }}
+          >
+            <div
+              style={{
+                textAlign: "center",
+                color: "#FFF",
+                maxWidth: 520,
+                animation: "fadeUp 0.8s ease-out",
+              }}
+            >
+              <div style={{ fontSize: 54, marginBottom: 16 }}>🧭</div>
+              <h1 style={{ fontSize: 34, fontWeight: 700, margin: "0 0 12px", lineHeight: 1.2 }}>
+                HK Karrierevejviser
+              </h1>
+              <p style={{ fontSize: 17, opacity: 0.9, lineHeight: 1.6, marginBottom: 8 }}>
+                Et interaktivt værktøj til Karrieretelefonens vejledere
+              </p>
+              <p style={{ fontSize: 14, opacity: 0.7, lineHeight: 1.6, marginBottom: 32 }}>
+                Stil spørgsmål. Klik af. Få overblik over medlemmets muligheder
+                — uddannelsesveje, overenskomstrettigheder og gode råd.
+              </p>
+              <button
+                onClick={() => setStep(0)}
+                style={{
+                  padding: "14px 40px",
+                  fontSize: 17,
+                  fontWeight: 600,
+                  color: HK_BLUE,
+                  background: "#FFF",
+                  border: "none",
+                  borderRadius: 30,
+                  cursor: "pointer",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                  transition: "transform 0.2s",
+                  fontFamily: "inherit",
+                }}
+                onMouseEnter={(e) => (e.target.style.transform = "scale(1.04)")}
+                onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
+              >
+                Start vejledning →
+              </button>
+              <style>{`
+                @keyframes fadeUp {
+                  from { opacity: 0; transform: translateY(30px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+              `}</style>
+            </div>
+          </div>
+        );
+      }
+
+      // ── Spørgsmål & Resultater ──
+      return (
+        <div
+          style={{
+            minHeight: "100vh",
+            background: "#F3F4F6",
+            fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              background: HK_BLUE,
+              color: "#FFF",
+              padding: "14px 24px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              position: "sticky",
+              top: 0,
+              zIndex: 10,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 22 }}>🧭</span>
+              <span style={{ fontWeight: 700, fontSize: 17 }}>HK Karrierevejviser</span>
+            </div>
+            <button
+              onClick={reset}
+              style={{
+                background: "rgba(255,255,255,0.15)",
+                border: "none",
+                color: "#FFF",
+                padding: "6px 16px",
+                borderRadius: 20,
+                cursor: "pointer",
+                fontSize: 13,
+                fontFamily: "inherit",
+              }}
+            >
+              Ny samtale
+            </button>
+          </div>
+
+          {/* Indhold */}
+          <div
+            ref={containerRef}
+            style={{
+              maxWidth: 640,
+              margin: "0 auto",
+              padding: "28px 20px 40px",
+              opacity: fadeIn ? 1 : 0,
+              transform: fadeIn ? "translateY(0)" : "translateY(12px)",
+              transition: "all 0.35s ease",
+            }}
+          >
+            {step < totalSteps && <ProgressBar step={step} total={totalSteps} />}
+
+            {/* Step 0: Fagområde */}
+            {step === 0 && (
+              <>
+                <h2 style={{ color: HK_BLUE, fontSize: 22, marginBottom: 6 }}>Hvilket fagområde?</h2>
+                <p style={{ color: "#6B7280", marginBottom: 20, fontSize: 14 }}>
+                  Spørg medlemmet: "Hvad arbejder du med til daglig?"
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {FAGOMRAADER.map((f) => (
+                    <OptionCard
+                      key={f.id}
+                      icon={f.icon}
+                      label={f.label}
+                      desc={f.desc}
+                      selected={answers.fagomraade === f.id}
+                      onClick={() => select("fagomraade", f.id)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Step 1: Uddannelse */}
+            {step === 1 && (
+              <>
+                <h2 style={{ color: HK_BLUE, fontSize: 22, marginBottom: 6 }}>Uddannelsesbaggrund?</h2>
+                <p style={{ color: "#6B7280", marginBottom: 20, fontSize: 14 }}>
+                  Spørg: "Hvilken uddannelse har du som baggrund?"
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {UDDANNELSER.map((u) => (
+                    <OptionCard
+                      key={u.id}
+                      icon={u.icon}
+                      label={u.label}
+                      selected={answers.uddannelse === u.id}
+                      onClick={() => select("uddannelse", u.id)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Step 2: Behov */}
+            {step === 2 && (
+              <>
+                <h2 style={{ color: HK_BLUE, fontSize: 22, marginBottom: 6 }}>Hvad søger medlemmet?</h2>
+                <p style={{ color: "#6B7280", marginBottom: 20, fontSize: 14 }}>
+                  Spørg: "Hvad drømmer du om — hvad vil du gerne opnå?"
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {BEHOV.map((b) => (
+                    <OptionCard
+                      key={b.id}
+                      icon={b.icon}
+                      label={b.label}
+                      desc={b.desc}
+                      selected={answers.behov === b.id}
+                      onClick={() => select("behov", b.id)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Step 3: Erfaring */}
+            {step === 3 && (
+              <>
+                <h2 style={{ color: HK_BLUE, fontSize: 22, marginBottom: 6 }}>Hvor lang erfaring?</h2>
+                <p style={{ color: "#6B7280", marginBottom: 20, fontSize: 14 }}>
+                  Spørg: "Hvor mange år har du arbejdet inden for dit felt?"
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {ERFARING.map((e) => (
+                    <OptionCard
+                      key={e.id}
+                      icon={e.icon}
+                      label={e.label}
+                      selected={answers.erfaring === e.id}
+                      onClick={() => select("erfaring", e.id)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Resultater */}
+            {step >= totalSteps && results && (
+              <>
+                <div
+                  style={{
+                    background: `linear-gradient(135deg, ${HK_BLUE}, #005A9E)`,
+                    color: "#FFF",
+                    padding: 24,
+                    borderRadius: 16,
+                    marginBottom: 24,
+                  }}
+                >
+                  <h2 style={{ margin: "0 0 8px", fontSize: 22 }}>
+                    📋 Vejledningsoverblik
+                  </h2>
+                  <p style={{ margin: 0, opacity: 0.9, fontSize: 14, lineHeight: 1.5 }}>
+                    Baseret på medlemmets profil: <strong>{FAGOMRAADER.find((f) => f.id === answers.fagomraade)?.label}</strong>,{" "}
+                    <strong>{UDDANNELSER.find((u) => u.id === answers.uddannelse)?.label}</strong>,{" "}
+                    <strong>{ERFARING.find((e) => e.id === answers.erfaring)?.label} erfaring</strong>
+                  </p>
+                </div>
+
+                {/* Uddannelsesveje */}
+                {results.uddannelsesveje.length > 0 && (
+                  <div style={{ marginBottom: 28 }}>
+                    <h3 style={{ color: HK_BLUE, fontSize: 18, marginBottom: 12 }}>
+                      🎓 Uddannelsesveje & kurser
+                    </h3>
+                    {results.uddannelsesveje.map((u, i) => (
+                      <ResultCard key={i} {...u} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Overenskomst */}
+                {results.overenskomst.length > 0 && (
+                  <div style={{ marginBottom: 28 }}>
+                    <h3 style={{ color: HK_BLUE, fontSize: 18, marginBottom: 12 }}>
+                      📜 Overenskomstrettigheder
+                    </h3>
+                    {results.overenskomst.map((o, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          padding: 16,
+                          background: "#FFFBEB",
+                          border: "1px solid #FDE68A",
+                          borderRadius: 12,
+                          marginBottom: 8,
+                        }}
+                      >
+                        <h4 style={{ margin: "0 0 4px", color: "#92400E", fontSize: 15 }}>{o.title}</h4>
+                        <p style={{ margin: 0, color: "#78350F", fontSize: 13, lineHeight: 1.5 }}>{o.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Tips */}
+                {results.tips.length > 0 && (
+                  <div style={{ marginBottom: 28 }}>
+                    <h3 style={{ color: HK_BLUE, fontSize: 18, marginBottom: 12 }}>
+                      💡 Tips til samtalen
+                    </h3>
+                    <div style={{ background: "#FFF", borderRadius: 12, padding: 18, border: "1px solid #E5E7EB" }}>
+                      {results.tips.map((tip, i) => (
+                        <div key={i} style={{ display: "flex", gap: 10, marginBottom: i < results.tips.length - 1 ? 12 : 0 }}>
+                          <span style={{ color: HK_ACCENT, fontWeight: 700, flexShrink: 0 }}>→</span>
+                          <span style={{ color: "#374151", fontSize: 14, lineHeight: 1.5 }}>{tip}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Hurtiglinks */}
+                <div style={{ marginBottom: 28 }}>
+                  <h3 style={{ color: HK_BLUE, fontSize: 18, marginBottom: 12 }}>🔗 Nyttige links</h3>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                    {results.hurtiglinks.map((link, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          padding: "12px 14px",
+                          background: "#FFF",
+                          border: "1px solid #E5E7EB",
+                          borderRadius: 10,
+                          fontSize: 13,
+                          color: HK_ACCENT,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {link.label}
+                        <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 400, marginTop: 2 }}>
+                          {link.url}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <div style={{ display: "flex", gap: 10, marginBottom: 40 }}>
+                  <button
+                    onClick={reset}
+                    style={{
+                      flex: 1,
+                      padding: "13px 20px",
+                      background: HK_ACCENT,
+                      color: "#FFF",
+                      border: "none",
+                      borderRadius: 10,
+                      fontSize: 15,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    🔄 Ny samtale
+                  </button>
+                  <button
+                    onClick={() => setShowReveal(true)}
+                    style={{
+                      flex: 1,
+                      padding: "13px 20px",
+                      background: "#FFF",
+                      color: HK_BLUE,
+                      border: `2px solid ${HK_BLUE}`,
+                      borderRadius: 10,
+                      fontSize: 15,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    ℹ️ Om dette værktøj
+                  </button>
+                </div>
+
+                {/* Reveal / Ansøgning */}
+                {showReveal && (
+                  <div
+                    style={{
+                      background: `linear-gradient(135deg, ${HK_BLUE} 0%, #1a4a7a 100%)`,
+                      color: "#FFF",
+                      borderRadius: 20,
+                      padding: 32,
+                      marginBottom: 40,
+                      animation: "fadeUp 0.6s ease-out",
+                    }}
+                  >
+                    <div style={{ textAlign: "center", marginBottom: 20 }}>
+                      <div style={{ fontSize: 40, marginBottom: 12 }}>👋</div>
+                      <h2 style={{ margin: "0 0 8px", fontSize: 26 }}>Hej — jeg hedder Bastian</h2>
+                      <p style={{ opacity: 0.85, fontSize: 15, lineHeight: 1.6, maxWidth: 440, margin: "0 auto" }}>
+                        Og dette værktøj er min uopfordrede ansøgning til jer.
+                      </p>
+                    </div>
+
+                    <div
+                      style={{
+                        background: "rgba(255,255,255,0.1)",
+                        borderRadius: 14,
+                        padding: 22,
+                        marginBottom: 20,
+                      }}
+                    >
+                      <h3 style={{ margin: "0 0 12px", fontSize: 17 }}>Hvorfor lavede jeg det her?</h3>
+                      <p style={{ margin: "0 0 12px", fontSize: 14, lineHeight: 1.7, opacity: 0.95 }}>
+                        Fordi jeg tror på, at den bedste ansøgning ikke er et brev om hvad jeg
+                        <em> kunne</em> gøre — men en demonstration af, hvad jeg <em>gør</em>.
+                      </p>
+                      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, opacity: 0.95 }}>
+                        Jeg er kreativ konceptudvikler og tekstforfatter med baggrund i bureaubranchen. Jeg
+                        identificerer problemer og omsætter dem til løsninger, der fungerer. Denne
+                        karrierevejviser er et eksempel på min tilgang: Jeg satte mig ind i jeres
+                        Karrieretelefons udfordringer og byggede en prototype, der kunne gøre
+                        vejledernes hverdag lettere.
+                      </p>
+                    </div>
+
+                    <div
+                      style={{
+                        background: "rgba(255,255,255,0.1)",
+                        borderRadius: 14,
+                        padding: 22,
+                        marginBottom: 20,
+                      }}
+                    >
+                      <h3 style={{ margin: "0 0 12px", fontSize: 17 }}>Hvad kan jeg tilbyde HK?</h3>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        {[
+                          { icon: "💡", text: "Konceptudvikling — fra indsigt til kreativ løsning" },
+                          { icon: "✍️", text: "Stærk kommunikation — tekst der rammer og rykker" },
+                          { icon: "🔧", text: "Prototyping — jeg bygger idéer, så de kan testes" },
+                          { icon: "🎯", text: "Forretningsforståelse — kreativitet med strategisk retning" },
+                        ].map((item, i) => (
+                          <div key={i} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                            <span style={{ fontSize: 20 }}>{item.icon}</span>
+                            <span style={{ fontSize: 14, opacity: 0.95 }}>{item.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: "center" }}>
+                      <p style={{ fontSize: 15, marginBottom: 16, opacity: 0.9 }}>
+                        Skal vi tage en snak om, hvad jeg kan gøre for Karrieretelefonen
+                        — og for HK's forretningsudvikling?
+                      </p>
+                      <div
+                        style={{
+                          display: "inline-block",
+                          background: "#FFF",
+                          color: HK_BLUE,
+                          padding: "14px 28px",
+                          borderRadius: 12,
+                          fontWeight: 700,
+                          fontSize: 16,
+                        }}
+                      >
+                        📧 bastiankjar@gmail.com
+                      </div>
+                    </div>
+
+                    <style>{`
+                      @keyframes fadeUp {
+                        from { opacity: 0; transform: translateY(30px); }
+                        to { opacity: 1; transform: translateY(0); }
+                      }
+                    `}</style>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(KarriereVejviser));
+  </script>
+</body>
+</html>
