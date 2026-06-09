@@ -1,640 +1,382 @@
 <!DOCTYPE html>
 <html lang="da">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tal med din overenskomst</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tal med din overenskomst</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>
 </head>
 <body>
-  <a href="index.html" style="display:block;padding:8px 20px;background:#003B6F;color:rgba(255,255,255,0.7);font-family:system-ui,sans-serif;font-size:13px;text-decoration:none;font-weight:500;">← Alle koncepter</a>
-  <div id="root"></div>
+<a href="index.html" style="display:block;padding:8px 20px;background:#003B6F;color:rgba(255,255,255,0.7);font-family:system-ui,sans-serif;font-size:13px;text-decoration:none;font-weight:500;">← Alle koncepter</a>
+<div id="root"></div>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
 
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+// ── Farver ────────────────────────────────────────────────────────
+const HK_BLUE   = "#003B6F";
+const HK_ACCENT = "#0071CE";
+const HK_LIGHT  = "#E8F0FE";
 
-  <script type="text/babel">
-    // ── Farver ────────────────────────────────────────────────────────
-    const HK_BLUE = "#003B6F";
-    const HK_ACCENT = "#0071CE";
-    const HK_GREEN = "#2E8B57";
-    const HK_LIGHT = "#E8F0FE";
+// ── Sektorer ──────────────────────────────────────────────────────
+const SEKTORER = [
+  { id: "handel",    label: "HK Handel",    icon: "🛒", desc: "Butik, kontor og lager i detailhandlen" },
+  { id: "privat",    label: "HK Privat",    icon: "🏢", desc: "Kontor, IT, administration i den private sektor" },
+  { id: "kommunal",  label: "HK Kommunal",  icon: "🏛️", desc: "Ansat i kommune eller region" },
+  { id: "stat",      label: "HK Stat",      icon: "⚖️", desc: "Ansat i staten" },
+];
 
-    // ── Sektorer ──────────────────────────────────────────────────────
-    const SEKTORER = [
-      { id: "handel", label: "HK Handel", icon: "🛒", desc: "Butik, kontor og lager i detailhandlen" },
-      { id: "privat", label: "HK Privat", icon: "🏢", desc: "Kontor, IT, administration i den private sektor" },
-      { id: "kommunal", label: "HK Kommunal", icon: "🏛️", desc: "Ansat i kommune eller region" },
-      { id: "stat", label: "HK Stat", icon: "⚖️", desc: "Ansat i staten" },
-    ];
+// ── Eksempelspørgsmål per sektor ──────────────────────────────────
+const EKSEMPLER = {
+  handel:   ["Hvad er mindstelønnen for butiksassistenter?", "Har jeg ret til fri når mit barn er sygt?", "Hvad er Fritvalgskontoen?", "Hvornår stiger lønnen?"],
+  privat:   ["Hvad er mit opsigelsesvarsel?", "Hvad har jeg ret til under barsel?", "Hvad er mine rettigheder ved sygdom?", "Hvad kan jeg bruge Fritvalgskontoen til?"],
+  kommunal: ["Hvor mange feriedage har jeg?", "Hvad er mit pensionsbidrag?", "Hvad sker der hvis jeg er syg i lang tid?", "Hvad er mine uddannelsesrettigheder?"],
+  stat:     ["Hvad er mine barselsrettigheder?", "Hvad er reglerne for overarbejde?", "Hvad er mit opsigelsesvarsel?", "Hvad har jeg ret til ved sygdom?"],
+};
 
-    // ── Søgebare Q&A per sektor ───────────────────────────────────────
-    // Hvert spørgsmål har nøgleord der matcher, og et svar i klart sprog.
-    const QA = {
-      handel: [
-        { nøgleord: ["løn", "mindsteløn", "stigning", "lønstigning", "hvad tjener", "lønniveau", "lønforhøjelse"],
-          spørgsmål: "Hvad er mindstelønnen, og hvornår stiger den?",
-          svar: "Mindstelønnen stiger med 601 kr./md. fra 1. maj 2025, yderligere 561 kr./md. fra 1. marts 2026 og igen fra 1. marts 2027. I alt stiger den 1.723 kr./md. i overenskomstperioden for både faglærte og ufaglærte butiksassistenter.",
-          tags: ["Butiksoverenskomsten 2025-2028"] },
+// ── Kald til vores API-mellemmand ─────────────────────────────────
+async function spørAI(messages, sektor) {
+  const systemPrompt = `Du er en hjælpsom assistent fra HK (den danske fagforening). Du hjælper HK-medlemmer med at forstå deres rettigheder og overenskomst.
 
-        { nøgleord: ["ferie", "feriedag", "feriefridag", "fri", "ferieuger", "hvor mange uger"],
-          spørgsmål: "Hvor mange feriedage og feriefridage har jeg ret til?",
-          svar: "Du har ret til 5 ugers ferie efter ferieloven, plus 5 feriefridage når du har 9 måneders anciennitet. Feriefridagenes værdi henlægges på din Fritvalgskonto. Ubrugte feriefridage udbetales automatisk ved ferieårets udløb.",
-          tags: ["Ferieloven", "Butiksoverenskomsten"] },
+Den valgte sektor er: ${sektor.label} — ${sektor.desc}.
 
-        { nøgleord: ["barsel", "gravid", "barselsorlov", "fødsel", "forældreorlov", "fædreorlov", "mor", "far", "termin"],
-          spørgsmål: "Hvad har jeg ret til under barsel?",
-          svar: "Moderen har ret til 4 ugers graviditetsorlov med fuld løn før termin. Faderen/medforælderen har ret til 2 uger med fuld løn. Derudover er der 7 deleuger med fuld løn mellem forældrene (forhøjet fra 5 i den nye overenskomst). Sociale forældre har nu også ret til orlov med løn.",
-          tags: ["Butiksoverenskomsten 2025-2028", "Nyt i 2025"] },
+Regler for dine svar:
+- Svar ALTID på dansk i klart hverdagssprog
+- Hold svarene kortfattede (max 4-5 sætninger)
+- Brug aldrig fagtermer uden at forklare dem
+- Vær konkret — giv tal og frister når det er relevant
+- Afslut med "Kontakt HK på 7011 4545 for personlig rådgivning" ved komplicerede eller personlige situationer
+- Hvis du er i tvivl om noget, sig det ærligt frem for at gætte
 
-        { nøgleord: ["syg", "sygdom", "sygedag", "sygemelding", "løn under sygdom"],
-          spørgsmål: "Hvad er mine rettigheder ved sygdom?",
-          svar: "Timelønnede har ret til i alt 17 ugers løn under sygdom (forhøjet med 3 uger i den nye overenskomst). Funktionærer har ret til fuld løn under sygdom fra første fraværsdag. Din arbejdsgiver kan kræve lægeerklæring og indkalde til sygefraværssamtale.",
-          tags: ["Butiksoverenskomsten 2025-2028", "Nyt i 2025"] },
+Du har dyb viden om HK's overenskomster: Butiksoverenskomsten 2025-2028, HK Privat's overenskomst, den kommunale overenskomst og den statslige overenskomst.`;
 
-        { nøgleord: ["langvarig sygdom", "længere tid syg", "syg i lang tid", "kronisk", "operation", "indlæggelse", "sygemeldt længe", "120 dage", "§56", "mulighedserklæring"],
-          spørgsmål: "Hvad sker der, hvis jeg er syg i længere tid?",
-          svar: "Det er naturligvis en svær situation. Her er hvad du skal vide: Som funktionær har du ret til fuld løn under sygdom. Din arbejdsgiver kan kræve en lægeerklæring og vil typisk indkalde til en sygefraværssamtale inden for de første 4 uger. I samtalen kan I lave en mulighedserklæring, som er en plan for, hvordan du evt. kan vende gradvist tilbage. Vær opmærksom på 120-dages-reglen, hvis den er aftalt i din kontrakt: den giver arbejdsgiveren mulighed for at opsige med forkortet varsel, hvis du har været syg i 120 dage inden for 12 måneder. Det er vigtigt at du kontakter HK tidligt i forløbet, så vi kan rådgive dig om dine rettigheder og hjælpe dig, hvis der opstår spørgsmål fra din arbejdsgiver.",
-          tags: ["Funktionærloven", "Butiksoverenskomsten"] },
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, systemPrompt, maxTokens: 600 }),
+  });
 
-        { nøgleord: ["barn", "barns sygedag", "barn syg", "barn er syg", "barns første", "barns anden", "barns tredje", "omsorgsdage", "børnebørn"],
-          spørgsmål: "Har jeg ret til fri når mit barn er sygt?",
-          svar: "Ja. Du har ret til fri med løn på dit barns 1. og 2. sygedag (barn under 14 år). Med den nye overenskomst har du nu også ret til fri på barnets 3. sygedag, som finansieres via Fritvalgskontoen. Derudover har du ret til 2 børnebørns-omsorgsdage pr. ferieår (uden løn, men du kan bruge Fritvalgskontoen).",
-          tags: ["Butiksoverenskomsten 2025-2028", "Nyt i 2025"] },
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'API fejl');
+  return data.content;
+}
 
-        { nøgleord: ["opsigelse", "fyret", "opsagt", "afskediget", "opsigelsesvarsel", "fratræd", "fritstillet"],
-          spørgsmål: "Hvad er mit opsigelsesvarsel?",
-          svar: "Funktionærer: 1 måned (under 6 mdr. ansættelse) stigende til 6 måneder (over 9 år). Timelønnede: 14 dages varsel op til 6 måneders ansættelse, derefter 1 måneds varsel, stigende med anciennitet. Ved opsigelse fra arbejdsgiver har du ret til op til 5 ugers uddannelse i opsigelsesperioden. 2 af ugerne kan placeres efter fratrædelse. Kontakt altid HK for at få tjekket om opsigelsen er i orden.",
-          tags: ["Funktionærloven", "Butiksoverenskomsten"] },
+// ── Komponenter ───────────────────────────────────────────────────
+function SektorPille({ sektor, selected, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "8px 16px",
+        border: selected ? `2px solid ${HK_ACCENT}` : "1px solid #D1D5DB",
+        borderRadius: 30,
+        background: selected ? HK_LIGHT : "#FFF",
+        cursor: "pointer", fontSize: 13,
+        fontWeight: selected ? 600 : 400,
+        color: selected ? HK_BLUE : "#374151",
+        fontFamily: "system-ui, sans-serif",
+        transition: "all 0.15s",
+        whiteSpace: "nowrap",
+      }}
+    >
+      <span style={{ fontSize: 16 }}>{sektor.icon}</span>
+      {sektor.label}
+    </button>
+  );
+}
 
-        { nøgleord: ["uddannelse", "kursus", "efteruddannelse", "videreuddannelse", "selvvalgt", "kompetence", "upgrade"],
-          spørgsmål: "Hvad er mine rettigheder til uddannelse?",
-          svar: "Du har ret til selvvalgt uddannelse uden anciennitetskrav (nyt i 2025). Detailhandelens Kompetencefond dækker kursusgebyr og evt. løntab. Ved opsigelse har du ret til op til 5 ugers uddannelse i opsigelsesperioden. HK tilbyder desuden gratis onlinekurser via læringsplatformen Upgrade.",
-          tags: ["Butiksoverenskomsten 2025-2028", "Nyt i 2025"] },
+function SkrivIndikator() {
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+      <div style={{
+        background: "#FFF", border: "1px solid #E5E7EB",
+        padding: "14px 18px", borderRadius: "16px 16px 16px 4px",
+        display: "flex", alignItems: "center", gap: 8,
+        fontSize: 13, color: "#9CA3AF",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+      }}>
+        <div style={{
+          width: 8, height: 8, borderRadius: "50%", background: HK_ACCENT,
+          animation: "spin 1s linear infinite",
+          border: `2px solid ${HK_LIGHT}`,
+          borderTopColor: HK_ACCENT,
+        }} />
+        Henter svar...
+      </div>
+    </div>
+  );
+}
 
-        { nøgleord: ["fritvalg", "fritvalgskonta", "fritvalgskontoen", "procent"],
-          spørgsmål: "Hvad er Fritvalgskontoen, og hvad kan den bruges til?",
-          svar: "Fritvalgskontoen er en procentdel af din ferieberettigede løn, som din arbejdsgiver indsætter. Bidraget stiger fra 9% til 10% pr. 1. marts 2026 og til 11% pr. 1. marts 2027. Du kan bruge den til ekstra ferie, pension, barns 3. sygedag, børnebørnsdage og ledsagelse af familiemedlemmer.",
-          tags: ["Butiksoverenskomsten 2025-2028", "Nyt i 2025"] },
+// ── Hovedapplikation ──────────────────────────────────────────────
+function TalMedDinOverenskomst() {
+  const [valgtSektor, setValgtSektor]   = React.useState(null);
+  const [inputTekst, setInputTekst]     = React.useState("");
+  const [samtale, setSamtale]           = React.useState([]);
+  const [loading, setLoading]           = React.useState(false);
+  const inputRef  = React.useRef(null);
+  const bundenRef = React.useRef(null);
 
-        { nøgleord: ["pension", "pensionsbidrag", "pensionsordning", "indbetal"],
-          spørgsmål: "Hvor meget går til pension?",
-          svar: "Pensionsbidraget er typisk 12% (4% egenbetaling + 8% arbejdsgiver) efter 2-3 måneders ansættelse. Pension indbetales til PensionDanmark. Det inkluderer forsikring ved sygdom, invaliditet og død.",
-          tags: ["Butiksoverenskomsten"] },
+  React.useEffect(() => {
+    if (valgtSektor && inputRef.current) inputRef.current.focus();
+  }, [valgtSektor]);
 
-        { nøgleord: ["arbejdstid", "timer", "overarbejde", "nultimer", "søndag", "helligdag", "weekend", "tillæg"],
-          spørgsmål: "Hvad er reglerne for arbejdstid og overarbejde?",
-          svar: "Normal arbejdstid er 37 timer pr. uge i gennemsnit. Nultimerskontrakter er afskaffet: Du har krav på et garanteret mindste antal timer. Overarbejde betales med 50% tillæg de første 3 timer, derefter 100%. Søndags- og helligdagsarbejde udløser særlige tillæg.",
-          tags: ["Butiksoverenskomsten 2025-2028"] },
+  React.useEffect(() => {
+    if (bundenRef.current) bundenRef.current.scrollIntoView({ behavior: "smooth" });
+  }, [samtale, loading]);
 
-        { nøgleord: ["lørdag", "weekend", "genetillæg", "aften", "nat"],
-          spørgsmål: "Får jeg tillæg for arbejde på lørdage og i weekender?",
-          svar: "Ja. Der er genetillæg for arbejde på lørdage efter kl. 14 og alle søn- og helligdage. Tillæggene er steget med den nye overenskomst. Det præcise beløb afhænger af din stilling.",
-          tags: ["Butiksoverenskomsten 2025-2028"] },
+  async function handleSend(tekst) {
+    const query = tekst || inputTekst;
+    if (!query.trim() || !valgtSektor || loading) return;
 
-        { nøgleord: ["syg ægtefælle", "syg kone", "syg mand", "syg partner", "kræft", "alvorlig sygdom", "nærtstående", "pårørende", "omsorgsorlov", "pasning", "pleje", "behandlingsforløb", "kræftbehandling", "terminal", "hospice", "ledsage"],
-          spørgsmål: "Hvad er mine rettigheder, hvis min ægtefælle eller nærtstående bliver alvorligt syg?",
-          svar: "Med den nye overenskomst har du ret til frihed til at ledsage nærtstående familiemedlemmer ved akutte nødstilfælde og helbredskonsultationer. Derudover giver omsorgsloven dig ret til op til 5 dages omsorgsorlov om året til at yde personlig omsorg eller støtte til en nærtstående med alvorlig sygdom. Du kan desuden søge kommunen om orlov til pasning af nærtstående med alvorlig sygdom (servicelovens §118), som giver ret til plejevederlag svarende til 1,5 gange dagpengesatsen.",
-          tags: ["Butiksoverenskomsten 2025-2028", "Omsorgsloven", "Serviceloven §118", "Nyt i 2025"] },
-      ],
+    const nySamtale = [...samtale, { type: "bruger", tekst: query }];
+    setSamtale(nySamtale);
+    setInputTekst("");
+    setLoading(true);
 
-      privat: [
-        { nøgleord: ["løn", "mindsteløn", "stigning", "lønforhandling", "lønstatistik"],
-          spørgsmål: "Hvad er mine lønrettigheder?",
-          svar: "Mindstelønnen stiger løbende i overenskomstperioden. Den konkrete stigning afhænger af din specifikke overenskomst (Handel/Viden/Service, Industri, Finans m.fl.). Du har ret til en årlig lønforhandling med din arbejdsgiver. Brug HK's lønstatistik til at forberede dig.",
-          tags: ["Funktionæroverenskomsten"] },
-
-        { nøgleord: ["ferie", "feriedag", "feriefridag", "fri", "ferieuger"],
-          spørgsmål: "Hvor mange feriedage har jeg ret til?",
-          svar: "5 ugers ferie efter ferieloven, plus 5 feriefridage med 9 måneders anciennitet. Dertil særlig feriegodtgørelse ud over den normale feriepengesats. Feriefridagenes værdi henlægges på Fritvalgskontoen.",
-          tags: ["Funktionæroverenskomsten"] },
-
-        { nøgleord: ["barsel", "gravid", "barselsorlov", "fødsel", "forældreorlov", "termin"],
-          spørgsmål: "Hvad har jeg ret til under barsel?",
-          svar: "4 ugers graviditetsorlov med fuld løn før termin for moderen. 2 ugers fædre-/medforælderorlov med fuld løn. Op til 7 deleuger med fuld løn mellem forældrene (forhøjet fra 5). Sociale forældre og medmødre har nu også barselsrettigheder.",
-          tags: ["Funktionæroverenskomsten 2025-2028", "Nyt i 2025"] },
-
-        { nøgleord: ["syg", "sygdom", "sygedag", "120 dage", "sygemelding"],
-          spørgsmål: "Hvad er mine rettigheder ved sygdom?",
-          svar: "Funktionærer har ret til fuld løn under sygdom fra første dag. Arbejdsgiveren kan kræve lægeerklæring og indkalde til sygefraværssamtale. Vær opmærksom på 120-dages-reglen, hvis den er aftalt i din kontrakt.",
-          tags: ["Funktionærloven"] },
-
-        { nøgleord: ["langvarig sygdom", "længere tid syg", "syg i lang tid", "kronisk", "operation", "indlæggelse", "sygemeldt længe", "120 dage", "§56", "mulighedserklæring"],
-          spørgsmål: "Hvad sker der, hvis jeg er syg i længere tid?",
-          svar: "Det er en svær situation, og det er vigtigt at du ved, hvad du har ret til. Som funktionær har du ret til fuld løn under sygdom. Din arbejdsgiver kan indkalde til sygefraværssamtale og kræve en mulighedserklæring, som er en plan for gradvis tilbagevenden. Vær opmærksom på 120-dages-reglen, hvis den er aftalt i din kontrakt. Vi anbefaler at du kontakter HK tidligt i forløbet, så vi kan sikre at dine rettigheder bliver overholdt.",
-          tags: ["Funktionærloven"] },
-
-        { nøgleord: ["barn", "barns sygedag", "barn syg"],
-          spørgsmål: "Har jeg ret til fri når mit barn er sygt?",
-          svar: "Ja. Ret til fri med løn på barnets 1. og 2. sygedag (barn under 14 år). Ret til fri på barnets 3. sygedag via Fritvalgskontoen. Ret til at ledsage nærtstående til akutte nødstilfælde og lægebesøg.",
-          tags: ["Funktionæroverenskomsten 2025-2028"] },
-
-        { nøgleord: ["opsigelse", "fyret", "opsagt", "opsigelsesvarsel"],
-          spørgsmål: "Hvad er mit opsigelsesvarsel?",
-          svar: "Opsigelsesvarsel følger funktionærloven: 1-6 måneders varsel afhængigt af anciennitet. Ved opsigelse har du ret til op til 5 ugers uddannelse i opsigelsesperioden (2 uger kan lægges efter fratrædelse). Kontakt HK med det samme.",
-          tags: ["Funktionærloven"] },
-
-        { nøgleord: ["uddannelse", "kursus", "selvvalgt", "ret og pligt", "kompetence"],
-          spørgsmål: "Hvad er mine rettigheder til uddannelse?",
-          svar: "Op til 2 ugers selvvalgt uddannelse om året uden anciennitetskrav. Op til 10 dages ret- og pligtuddannelse med fuld løn pr. år. Fritvalgskontoen kan bruges til yderligere uddannelse. Gratis kurser via HK's læringsplatform Upgrade.",
-          tags: ["Funktionæroverenskomsten 2025-2028"] },
-
-        { nøgleord: ["fritvalg", "fritvalgskonta"],
-          spørgsmål: "Hvad er Fritvalgskontoen?",
-          svar: "Bidraget stiger fra 9% til 10% pr. 1. marts 2026 og til 11% pr. 1. marts 2027. Kan bruges til ferie, pension, uddannelse, barns 3. sygedag og børnebørnsdage. Du bestemmer selv hvad pengene bruges til inden for rammerne.",
-          tags: ["Funktionæroverenskomsten 2025-2028"] },
-
-        { nøgleord: ["pension", "pensionsbidrag"],
-          spørgsmål: "Hvor meget går til pension?",
-          svar: "Pensionsbidraget er typisk 12-15% afhængigt af din specifikke overenskomst. Inkluderer forsikring ved sygdom, invaliditet og død. Indbetales typisk til PensionDanmark eller den relevante pensionskasse.",
-          tags: ["Funktionæroverenskomsten"] },
-
-        { nøgleord: ["arbejdstid", "timer", "overarbejde", "flextid"],
-          spørgsmål: "Hvad er reglerne for arbejdstid?",
-          svar: "Normal ugentlig arbejdstid: 37 timer. Overarbejde betales med 50% tillæg de første 3 timer, derefter 100%. Fleksible arbejdstidsaftaler kan indgås lokalt.",
-          tags: ["Funktionæroverenskomsten"] },
-
-        { nøgleord: ["syg ægtefælle", "syg kone", "syg mand", "syg partner", "kræft", "alvorlig sygdom", "nærtstående", "pårørende", "omsorgsorlov", "pasning", "pleje", "behandlingsforløb", "kræftbehandling", "terminal", "hospice", "ledsage"],
-          spørgsmål: "Hvad er mine rettigheder, hvis min ægtefælle eller nærtstående bliver alvorligt syg?",
-          svar: "Du har ret til frihed til at ledsage nærtstående ved akutte nødstilfælde og helbredskonsultationer. Omsorgsloven giver dig ret til op til 5 dages omsorgsorlov om året til at yde personlig omsorg eller støtte til en nærtstående med alvorlig sygdom. Du kan desuden søge kommunen om orlov til pasning af nærtstående med alvorlig sygdom (servicelovens §118), som giver ret til plejevederlag svarende til 1,5 gange dagpengesatsen.",
-          tags: ["Funktionæroverenskomsten", "Omsorgsloven", "Serviceloven §118"] },
-      ],
-
-      kommunal: [
-        { nøgleord: ["løn", "løngruppe", "tillæg", "lønforhandling"],
-          spørgsmål: "Hvordan er lønnen sat sammen?",
-          svar: "Lønnen fastsættes efter et løntrinssystem med grundløn plus funktions- og kvalifikationstillæg. Generelle lønstigninger forhandles centralt. Du kan også forhandle individuelle tillæg for særlige funktioner eller kvalifikationer via lokal lønforhandling.",
-          tags: ["Kommunal overenskomst"] },
-
-        { nøgleord: ["ferie", "feriedag", "fri", "ferieuger", "omsorgsdage"],
-          spørgsmål: "Hvor mange feriedage har jeg?",
-          svar: "6 ugers ferie i alt: 5 uger efter ferieloven plus 1 uges ekstra ferie via overenskomsten. Dertil omsorgsdage: 2 pr. barn pr. kalenderår (barn under 7 år). Særlig feriegodtgørelse der er højere end den lovbestemte.",
-          tags: ["Kommunal overenskomst"] },
-
-        { nøgleord: ["barsel", "gravid", "barselsorlov", "fødsel", "termin"],
-          spørgsmål: "Hvad har jeg ret til under barsel?",
-          svar: "8 ugers graviditetsorlov med fuld løn (dobbelt så lang som i den private sektor). 2 ugers fædre-/medforælderorlov med fuld løn. Øremærkede barselsrettigheder med løn ud over de lovbestemte. Pension optjenes under hele barselsperioden.",
-          tags: ["Kommunal overenskomst"] },
-
-        { nøgleord: ["syg", "sygdom", "sygedag", "sygemelding"],
-          spørgsmål: "Hvad er mine rettigheder ved sygdom?",
-          svar: "Fuld løn under sygdom fra første fraværsdag. Sygefraværssamtale senest 4 uger efter sygemelding. Mulighedserklæring kan bruges til at finde løsninger for delvis tilbagevenden.",
-          tags: ["Kommunal overenskomst"] },
-
-        { nøgleord: ["langvarig sygdom", "længere tid syg", "syg i lang tid", "kronisk", "operation", "indlæggelse", "sygemeldt længe", "mulighedserklæring"],
-          spørgsmål: "Hvad sker der, hvis jeg er syg i længere tid?",
-          svar: "Som kommunalt ansat har du ret til fuld løn under sygdom. Din leder skal indkalde til sygefraværssamtale senest 4 uger efter din sygemelding. I samtalen kan I lave en mulighedserklæring med en plan for gradvis tilbagevenden eller tilpassede opgaver. Kommunen har typisk en sygefraværspolitik med fastsatte retningslinjer. Kontakt HK tidligt, så vi kan hjælpe dig med at navigere i processen og sikre dine rettigheder.",
-          tags: ["Kommunal overenskomst"] },
-
-        { nøgleord: ["barn", "barns sygedag", "barn syg"],
-          spørgsmål: "Har jeg ret til fri når mit barn er sygt?",
-          svar: "Ja. Ret til fri med løn på barnets 1. og 2. sygedag. 2 omsorgsdage pr. barn pr. kalenderår (barn under 7 år). Ret til tjenestefrihed af kortere varighed ved akut sygdom i familien.",
-          tags: ["Kommunal overenskomst"] },
-
-        { nøgleord: ["opsigelse", "fyret", "opsagt", "afskedigelse"],
-          spørgsmål: "Hvad er mit opsigelsesvarsel?",
-          svar: "Opsigelsesvarsel følger funktionærloven: 1-6 måneder afhængigt af anciennitet. Ved uenighed om opsigelsens saglighed kan sagen indbringes for et afskedigelsesnævn. Kontakt HK straks.",
-          tags: ["Funktionærloven", "Kommunal overenskomst"] },
-
-        { nøgleord: ["uddannelse", "kursus", "kompetence", "MUS"],
-          spørgsmål: "Hvad er mine rettigheder til uddannelse?",
-          svar: "Ret til kompetenceudvikling og efteruddannelse. Den Kommunale Kompetencefond yder tilskud. Brug din MUS-samtale aktivt til at aftale en uddannelsesplan med din leder. Gratis kurser via HK's læringsplatform Upgrade.",
-          tags: ["Kommunal overenskomst"] },
-
-        { nøgleord: ["pension", "pensionsbidrag"],
-          spørgsmål: "Hvor meget går til pension?",
-          svar: "Pensionsbidraget er typisk 15-18% (eget bidrag + arbejdsgiverbidrag). Pension indbetales til den relevante pensionskasse (typisk Sampension eller PKA). Inkluderer gruppeliv, invalidepension og andre forsikringer.",
-          tags: ["Kommunal overenskomst"] },
-
-        { nøgleord: ["arbejdstid", "timer", "flextid", "overarbejde"],
-          spørgsmål: "Hvad er reglerne for arbejdstid?",
-          svar: "Normal ugentlig arbejdstid: 37 timer. Flekstidsordninger er udbredte i kommunerne. Overarbejde kompenseres med afspadsering eller udbetaling med tillæg.",
-          tags: ["Kommunal overenskomst"] },
-
-        { nøgleord: ["syg ægtefælle", "syg kone", "syg mand", "syg partner", "kræft", "alvorlig sygdom", "nærtstående", "pårørende", "omsorgsorlov", "pasning", "pleje", "behandlingsforløb", "kræftbehandling", "terminal", "hospice", "ledsage"],
-          spørgsmål: "Hvad er mine rettigheder, hvis min ægtefælle eller nærtstående bliver alvorligt syg?",
-          svar: "Du har ret til tjenestefrihed af kortere varighed ved akut sygdom i familien. Omsorgsloven giver dig ret til op til 5 dages omsorgsorlov om året til at yde omsorg eller støtte til en nærtstående med alvorlig sygdom. Du kan desuden søge kommunen om orlov til pasning af nærtstående med alvorlig sygdom (servicelovens §118), som giver ret til plejevederlag. Som kommunalt ansat kan du også tale med din leder om fleksibel tilrettelæggelse af arbejdstiden i perioden.",
-          tags: ["Kommunal overenskomst", "Omsorgsloven", "Serviceloven §118"] },
-      ],
-
-      stat: [
-        { nøgleord: ["løn", "løngruppe", "tillæg", "lønstigning"],
-          spørgsmål: "Hvordan er lønnen sat sammen?",
-          svar: "Lønnen er steget med 0,41% fra 1. april 2025. Grundlønnen for de tre laveste løngrupper er hævet. Lønnen fastsættes efter løngrupper med grundløn, funktionstillæg og kvalifikationstillæg. Mulighed for individuelle tillæg via lokal lønforhandling.",
-          tags: ["Statslig overenskomst 2025"] },
-
-        { nøgleord: ["ferie", "feriedag", "ferieuger", "fri"],
-          spørgsmål: "Hvor mange feriedage har jeg?",
-          svar: "6 ugers ferie: 5 uger efter ferieloven plus 1 ekstra uge via overenskomsten. Særlig feriegodtgørelse på 1,5% (højere end lovens minimum). Nyansatte har ret til betalt ferie allerede i de første to fulde ferieperioder.",
-          tags: ["Statslig overenskomst"] },
-
-        { nøgleord: ["barsel", "gravid", "barselsorlov", "fødsel", "termin"],
-          spørgsmål: "Hvad har jeg ret til under barsel?",
-          svar: "Graviditetsorlov med fuld løn fra 6 uger før termin. 2 ugers fædre-/medforælderorlov med fuld løn. Øremærkede barselsrettigheder med løn ud over funktionærloven. Pension optjenes under hele barselsperioden.",
-          tags: ["Statslig overenskomst"] },
-
-        { nøgleord: ["syg", "sygdom", "sygedag"],
-          spørgsmål: "Hvad er mine rettigheder ved sygdom?",
-          svar: "Fuld løn under sygdom fra første fraværsdag. Ved langvarig sygdom er der mulighed for delvis tilbagevenden og tilpassede opgaver.",
-          tags: ["Statslig overenskomst"] },
-
-        { nøgleord: ["langvarig sygdom", "længere tid syg", "syg i lang tid", "kronisk", "operation", "indlæggelse", "sygemeldt længe", "mulighedserklæring"],
-          spørgsmål: "Hvad sker der, hvis jeg er syg i længere tid?",
-          svar: "Som statsansat har du ret til fuld løn under sygdom. Ved langvarig sygdom er der mulighed for delvis tilbagevenden med tilpassede opgaver. Din leder kan indkalde til sygefraværssamtale og I kan lave en mulighedserklæring sammen. Kontakt HK tidligt i forløbet, så vi kan hjælpe dig med at sikre dine rettigheder gennem hele processen.",
-          tags: ["Statslig overenskomst"] },
-
-        { nøgleord: ["barn", "barns sygedag", "barn syg", "omsorgsdage"],
-          spørgsmål: "Har jeg ret til fri når mit barn er sygt?",
-          svar: "Ja. Ret til tjenestefrihed med løn på barnets 1. og 2. sygedag. Omsorgsdage for forældre med børn under 7 år. Mulighed for fleksibel tilrettelæggelse ved barns sygdom.",
-          tags: ["Statslig overenskomst"] },
-
-        { nøgleord: ["opsigelse", "fyret", "opsagt"],
-          spørgsmål: "Hvad er mit opsigelsesvarsel?",
-          svar: "Opsigelsesvarsel følger funktionærloven: 1-6 måneder afhængigt af anciennitet. Afskedigelse skal være sagligt begrundet. Der er særlige klagemuligheder i staten. Kontakt HK straks.",
-          tags: ["Funktionærloven", "Statslig overenskomst"] },
-
-        { nøgleord: ["uddannelse", "kursus", "kompetence"],
-          spørgsmål: "Hvad er mine rettigheder til uddannelse?",
-          svar: "Ret til kompetenceudvikling som led i ansættelsen. Den statslige kompetencefond yder tilskud til kurser og uddannelse. Gratis kurser via HK's læringsplatform Upgrade.",
-          tags: ["Statslig overenskomst"] },
-
-        { nøgleord: ["pension", "pensionsbidrag"],
-          spørgsmål: "Hvor meget går til pension?",
-          svar: "Pensionsbidraget er typisk 15-18% (eget bidrag + arbejdsgiverbidrag). Indbetales typisk til Sampension. Inkluderer gruppeliv og forsikring ved invaliditet.",
-          tags: ["Statslig overenskomst"] },
-
-        { nøgleord: ["arbejdstid", "timer", "flextid", "overarbejde"],
-          spørgsmål: "Hvad er reglerne for arbejdstid?",
-          svar: "Normal ugentlig arbejdstid: 37 timer. Flekstid er udbredt i staten. Overarbejde kompenseres med afspadsering (time for time plus 50% de første 3 timer, derefter 100%).",
-          tags: ["Statslig overenskomst"] },
-
-        { nøgleord: ["syg ægtefælle", "syg kone", "syg mand", "syg partner", "kræft", "alvorlig sygdom", "nærtstående", "pårørende", "omsorgsorlov", "pasning", "pleje", "behandlingsforløb", "kræftbehandling", "terminal", "hospice", "ledsage"],
-          spørgsmål: "Hvad er mine rettigheder, hvis min ægtefælle eller nærtstående bliver alvorligt syg?",
-          svar: "Du har ret til tjenestefrihed ved akut sygdom i familien. Omsorgsloven giver dig ret til op til 5 dages omsorgsorlov om året til at yde omsorg eller støtte til en nærtstående med alvorlig sygdom. Du kan desuden søge kommunen om orlov til pasning af nærtstående med alvorlig sygdom (servicelovens §118), som giver ret til plejevederlag. Som statsansat kan du også tale med din leder om fleksibel tilrettelæggelse i perioden.",
-          tags: ["Statslig overenskomst", "Omsorgsloven", "Serviceloven §118"] },
-      ],
-    };
-
-    // ── Søgemotor ─────────────────────────────────────────────────────
-    function søgISvar(sektor, forespørgsel) {
-      const tekst = forespørgsel.toLowerCase();
-      const sektorData = QA[sektor];
-      if (!sektorData) return [];
-
-      const scorede = sektorData.map((qa) => {
-        let score = 0;
-        for (const nøgle of qa.nøgleord) {
-          if (tekst.includes(nøgle.toLowerCase())) {
-            score += nøgle.length;
-          }
+    try {
+      // Konverter samtalens historik til API-format
+      const messages = [];
+      for (const msg of samtale) {
+        if (msg.type === "bruger") {
+          messages.push({ role: "user", content: msg.tekst });
+        } else if (msg.type === "svar") {
+          messages.push({ role: "assistant", content: msg.svar });
         }
-        const spørgsmålOrd = qa.spørgsmål.toLowerCase().split(/\s+/);
-        for (const ord of tekst.split(/\s+/)) {
-          if (ord.length > 2 && spørgsmålOrd.includes(ord)) score += 1;
-        }
-        return { ...qa, score };
-      });
+      }
+      messages.push({ role: "user", content: query });
 
-      return scorede.filter((q) => q.score > 0).sort((a, b) => b.score - a.score);
+      const sektorObj = SEKTORER.find(s => s.id === valgtSektor);
+      const svar = await spørAI(messages, sektorObj);
+
+      setSamtale([...nySamtale, {
+        type: "svar",
+        svar,
+        tags: [sektorObj.label],
+      }]);
+    } catch (err) {
+      setSamtale([...nySamtale, {
+        type: "svar",
+        svar: "Beklager, der opstod en teknisk fejl. Ring til HK på 7011 4545 for hjælp.",
+        tags: ["Fejl"],
+      }]);
     }
 
-    // ── Komponenter ───────────────────────────────────────────────────
-    function SektorPille({ sektor, selected, onClick }) {
-      return (
-        <button
-          onClick={onClick}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 16px",
-            border: selected ? `2px solid ${HK_ACCENT}` : "1px solid #D1D5DB",
-            borderRadius: 30,
-            background: selected ? HK_LIGHT : "#FFF",
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: selected ? 600 : 400,
-            color: selected ? HK_BLUE : "#374151",
-            fontFamily: "system-ui, sans-serif",
-            transition: "all 0.15s",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <span style={{ fontSize: 16 }}>{sektor.icon}</span>
-          {sektor.label}
-        </button>
-      );
+    setLoading(false);
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
+  }
 
-    // ── Hovedapplikation ──────────────────────────────────────────────
-    function TalMedDinOverenskomst() {
-      const [valgtSektor, setValgtSektor] = React.useState(null);
-      const [inputTekst, setInputTekst] = React.useState("");
-      const [samtale, setSamtale] = React.useState([]);
-      const [forslag, setForslag] = React.useState([]);
-      const inputRef = React.useRef(null);
-      const bundenRef = React.useRef(null);
+  function vælgSektor(id) {
+    setValgtSektor(id);
+    setSamtale([]);
+    setInputTekst("");
+  }
 
-      React.useEffect(() => {
-        if (valgtSektor && inputRef.current) inputRef.current.focus();
-      }, [valgtSektor]);
+  const sektorObj = SEKTORER.find(s => s.id === valgtSektor);
 
-      React.useEffect(() => {
-        if (bundenRef.current) bundenRef.current.scrollIntoView({ behavior: "smooth" });
-      }, [samtale]);
+  // ── Startskærm ──
+  if (!valgtSektor) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        background: `linear-gradient(160deg, ${HK_BLUE} 0%, #005A9E 100%)`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "system-ui, -apple-system, sans-serif", padding: 20
+      }}>
+        <div style={{ textAlign: "center", color: "#FFF", maxWidth: 480 }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>📖</div>
+          <h1 style={{ fontSize: 30, fontWeight: 700, margin: "0 0 10px" }}>Tal med din overenskomst</h1>
+          <p style={{ fontSize: 15, opacity: 0.8, lineHeight: 1.6, marginBottom: 32 }}>
+            Stil et spørgsmål i hverdagssprog og få et rigtigt AI-svar — uden at læse 80 sider.
+          </p>
+          <div style={{ fontSize: 13, opacity: 0.5, marginBottom: 14 }}>Vælg din sektor for at starte</div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+            {SEKTORER.map(s => (
+              <button
+                key={s.id}
+                onClick={() => vælgSektor(s.id)}
+                style={{
+                  padding: "14px 18px",
+                  background: "rgba(255,255,255,0.1)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: 14, color: "#FFF", cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 13, textAlign: "center",
+                  transition: "all 0.2s", minWidth: 130,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.2)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
+              >
+                <div style={{ fontSize: 24, marginBottom: 4 }}>{s.icon}</div>
+                <div style={{ fontWeight: 600 }}>{s.label}</div>
+                <div style={{ fontSize: 11, opacity: 0.6, marginTop: 2 }}>{s.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-      React.useEffect(() => {
-        if (!valgtSektor || inputTekst.trim().length < 2) {
-          setForslag([]);
-          return;
-        }
-        const resultater = søgISvar(valgtSektor, inputTekst);
-        setForslag(resultater.slice(0, 3));
-      }, [inputTekst, valgtSektor]);
+  // ── Chat-skærm ──
+  return (
+    <div style={{
+      minHeight: "100vh", background: "#F3F4F6",
+      fontFamily: "system-ui, -apple-system, sans-serif",
+      display: "flex", flexDirection: "column"
+    }}>
+      {/* Header */}
+      <div style={{
+        background: HK_BLUE, color: "#FFF", padding: "10px 20px",
+        display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 18 }}>📖</span>
+          <span style={{ fontWeight: 700, fontSize: 15 }}>Tal med din overenskomst</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {SEKTORER.map(s => (
+            <SektorPille key={s.id} sektor={s} selected={valgtSektor === s.id} onClick={() => vælgSektor(s.id)} />
+          ))}
+        </div>
+      </div>
 
-      function handleSend(tekst) {
-        const query = tekst || inputTekst;
-        if (!query.trim() || !valgtSektor) return;
+      {/* Samtale */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
 
-        const resultater = søgISvar(valgtSektor, query);
-
-        const nySamtale = [
-          ...samtale,
-          { type: "bruger", tekst: query },
-        ];
-
-        if (resultater.length > 0) {
-          nySamtale.push({
-            type: "svar",
-            spørgsmål: resultater[0].spørgsmål,
-            svar: resultater[0].svar,
-            tags: resultater[0].tags,
-            relaterede: resultater.slice(1, 3),
-          });
-        } else {
-          nySamtale.push({
-            type: "svar",
-            svar: "Det har jeg desværre ikke et godt svar på her. Din situation lyder som noget der fortjener en personlig samtale med en af HK's rådgivere, som kan se på netop dine vilkår. Ring til HK på 7011 4545, så hjælper de dig videre.",
-            tags: ["Kontakt HK"],
-            relaterede: [],
-          });
-        }
-
-        setSamtale(nySamtale);
-        setInputTekst("");
-        setForslag([]);
-      }
-
-      function handleKeyDown(e) {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          handleSend();
-        }
-      }
-
-      function vælgSektor(id) {
-        setValgtSektor(id);
-        setSamtale([]);
-        setInputTekst("");
-        setForslag([]);
-      }
-
-      const sektorObj = SEKTORER.find((s) => s.id === valgtSektor);
-
-      if (!valgtSektor) {
-        return (
-          <div style={{ minHeight: "100vh", background: `linear-gradient(160deg, ${HK_BLUE} 0%, #005A9E 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui, -apple-system, sans-serif", padding: 20 }}>
-            <div style={{ textAlign: "center", color: "#FFF", maxWidth: 480 }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>📖</div>
-              <h1 style={{ fontSize: 30, fontWeight: 700, margin: "0 0 10px" }}>Tal med din overenskomst</h1>
-              <p style={{ fontSize: 15, opacity: 0.8, lineHeight: 1.6, marginBottom: 32 }}>
-                Stil et spørgsmål i hverdagssprog. Få svar fra din overenskomst uden at læse 80 sider.
+          {/* Velkomst + eksempler */}
+          {samtale.length === 0 && (
+            <div style={{ textAlign: "center", padding: "40px 0 20px" }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>{sektorObj.icon}</div>
+              <h2 style={{ fontSize: 20, color: "#1A1A2E", fontWeight: 600, margin: "0 0 6px" }}>
+                {sektorObj.label}
+              </h2>
+              <p style={{ fontSize: 14, color: "#6B7280", margin: "0 0 24px" }}>
+                Stil et spørgsmål om din overenskomst nedenfor.
               </p>
-              <div style={{ fontSize: 13, opacity: 0.5, marginBottom: 14 }}>Vælg din sektor for at starte</div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-                {SEKTORER.map((s) => (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                {(EKSEMPLER[valgtSektor] || []).map((ex, i) => (
                   <button
-                    key={s.id}
-                    onClick={() => vælgSektor(s.id)}
+                    key={i}
+                    onClick={() => handleSend(ex)}
                     style={{
-                      padding: "14px 18px",
-                      background: "rgba(255,255,255,0.1)",
-                      border: "1px solid rgba(255,255,255,0.2)",
-                      borderRadius: 14,
-                      color: "#FFF",
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                      fontSize: 13,
-                      textAlign: "center",
-                      transition: "all 0.2s",
-                      minWidth: 130,
+                      padding: "8px 14px", background: "#FFF",
+                      border: "1px solid #E5E7EB", borderRadius: 20,
+                      fontSize: 13, color: HK_ACCENT, cursor: "pointer",
+                      fontFamily: "inherit", transition: "all 0.15s",
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.2)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
+                    onMouseEnter={e => { e.currentTarget.style.background = HK_LIGHT; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "#FFF"; }}
                   >
-                    <div style={{ fontSize: 24, marginBottom: 4 }}>{s.icon}</div>
-                    <div style={{ fontWeight: 600 }}>{s.label}</div>
-                    <div style={{ fontSize: 11, opacity: 0.6, marginTop: 2 }}>{s.desc}</div>
+                    {ex}
                   </button>
                 ))}
               </div>
             </div>
-          </div>
-        );
-      }
+          )}
 
-      return (
-        <div style={{ minHeight: "100vh", background: "#F3F4F6", fontFamily: "system-ui, -apple-system, sans-serif", display: "flex", flexDirection: "column" }}>
-          <div style={{ background: HK_BLUE, color: "#FFF", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 18 }}>📖</span>
-              <span style={{ fontWeight: 700, fontSize: 15 }}>Tal med din overenskomst</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              {SEKTORER.map((s) => (
-                <SektorPille key={s.id} sektor={s} selected={valgtSektor === s.id} onClick={() => vælgSektor(s.id)} />
-              ))}
-            </div>
-          </div>
-
-          <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px" }}>
-            <div style={{ maxWidth: 680, margin: "0 auto" }}>
-              {samtale.length === 0 && (
-                <div style={{ textAlign: "center", padding: "40px 0 20px" }}>
-                  <div style={{ fontSize: 36, marginBottom: 8 }}>{sektorObj.icon}</div>
-                  <h2 style={{ fontSize: 20, color: "#1A1A2E", fontWeight: 600, margin: "0 0 6px" }}>
-                    {sektorObj.label}
-                  </h2>
-                  <p style={{ fontSize: 14, color: "#6B7280", margin: "0 0 24px" }}>
-                    Stil et spørgsmål om din overenskomst nedenfor.
-                  </p>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                    {["Har jeg ret til fri når mit barn er sygt?", "Hvad er mit opsigelsesvarsel?", "Min kone skal i kræftbehandling. Hvad er mine rettigheder?", "Hvad er Fritvalgskontoen?"].map((ex, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleSend(ex)}
-                        style={{
-                          padding: "8px 14px",
-                          background: "#FFF",
-                          border: "1px solid #E5E7EB",
-                          borderRadius: 20,
-                          fontSize: 13,
-                          color: HK_ACCENT,
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                          transition: "all 0.15s",
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = HK_LIGHT; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = "#FFF"; }}
-                      >
-                        {ex}
-                      </button>
-                    ))}
+          {/* Beskeder */}
+          {samtale.map((msg, i) => (
+            <div key={i} style={{ marginBottom: 16 }}>
+              {msg.type === "bruger" ? (
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <div style={{
+                    background: HK_ACCENT, color: "#FFF",
+                    padding: "10px 16px", borderRadius: "16px 16px 4px 16px",
+                    maxWidth: "75%", fontSize: 14, lineHeight: 1.5
+                  }}>
+                    {msg.tekst}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                  <div style={{
+                    background: "#FFF", border: "1px solid #E5E7EB",
+                    padding: "16px 18px", borderRadius: "16px 16px 16px 4px",
+                    maxWidth: "85%", boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+                  }}>
+                    <p style={{ margin: 0, fontSize: 14, color: "#1F2937", lineHeight: 1.7 }}>
+                      {msg.svar}
+                    </p>
+                    {msg.tags && msg.tags.length > 0 && (
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                        {msg.tags.map((tag, j) => (
+                          <span key={j} style={{
+                            fontSize: 10, background: `${HK_ACCENT}10`, color: HK_ACCENT,
+                            padding: "2px 8px", borderRadius: 10, fontWeight: 600
+                          }}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
-
-              {samtale.map((msg, i) => (
-                <div key={i} style={{ marginBottom: 16 }}>
-                  {msg.type === "bruger" ? (
-                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                      <div style={{ background: HK_ACCENT, color: "#FFF", padding: "10px 16px", borderRadius: "16px 16px 4px 16px", maxWidth: "75%", fontSize: 14, lineHeight: 1.5 }}>
-                        {msg.tekst}
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                      <div style={{ background: "#FFF", border: "1px solid #E5E7EB", padding: "16px 18px", borderRadius: "16px 16px 16px 4px", maxWidth: "85%", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-                        {msg.spørgsmål && (
-                          <div style={{ fontSize: 12, color: HK_ACCENT, fontWeight: 600, marginBottom: 6 }}>
-                            {msg.spørgsmål}
-                          </div>
-                        )}
-                        <p style={{ margin: 0, fontSize: 14, color: "#1F2937", lineHeight: 1.7 }}>{msg.svar}</p>
-                        {msg.tags && msg.tags.length > 0 && (
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-                            {msg.tags.map((tag, j) => (
-                              <span key={j} style={{ fontSize: 10, background: `${HK_ACCENT}10`, color: HK_ACCENT, padding: "2px 8px", borderRadius: 10, fontWeight: 600 }}>
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {msg.relaterede && msg.relaterede.length > 0 && (
-                          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #F3F4F6" }}>
-                            <div style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 6 }}>Relaterede spørgsmål:</div>
-                            {msg.relaterede.map((rel, j) => (
-                              <button
-                                key={j}
-                                onClick={() => handleSend(rel.spørgsmål)}
-                                style={{
-                                  display: "block",
-                                  background: "none",
-                                  border: "none",
-                                  padding: "4px 0",
-                                  fontSize: 13,
-                                  color: HK_ACCENT,
-                                  cursor: "pointer",
-                                  fontFamily: "inherit",
-                                  textAlign: "left",
-                                }}
-                              >
-                                → {rel.spørgsmål}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-              <div ref={bundenRef} />
             </div>
-          </div>
+          ))}
 
-          <div style={{ borderTop: "1px solid #E5E7EB", background: "#FFF", padding: "12px 16px", flexShrink: 0 }}>
-            <div style={{ maxWidth: 680, margin: "0 auto", position: "relative" }}>
-              {forslag.length > 0 && (
-                <div style={{ position: "absolute", bottom: "100%", left: 0, right: 0, background: "#FFF", border: "1px solid #E5E7EB", borderRadius: "12px 12px 0 0", boxShadow: "0 -4px 12px rgba(0,0,0,0.06)", overflow: "hidden", marginBottom: -1 }}>
-                  {forslag.map((f, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleSend(f.spørgsmål)}
-                      style={{
-                        display: "block",
-                        width: "100%",
-                        padding: "10px 16px",
-                        background: "none",
-                        border: "none",
-                        borderBottom: i < forslag.length - 1 ? "1px solid #F3F4F6" : "none",
-                        fontSize: 13,
-                        color: "#374151",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        textAlign: "left",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "#F9FAFB"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
-                    >
-                      <span style={{ color: HK_ACCENT, marginRight: 8 }}>→</span>
-                      {f.spørgsmål}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={inputTekst}
-                  onChange={(e) => setInputTekst(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Stil et spørgsmål om din overenskomst..."
-                  style={{
-                    flex: 1,
-                    padding: "12px 16px",
-                    border: "1px solid #D1D5DB",
-                    borderRadius: 12,
-                    fontSize: 14,
-                    fontFamily: "inherit",
-                    outline: "none",
-                  }}
-                />
-                <button
-                  onClick={() => handleSend()}
-                  disabled={!inputTekst.trim()}
-                  style={{
-                    padding: "12px 20px",
-                    background: inputTekst.trim() ? HK_ACCENT : "#D1D5DB",
-                    color: "#FFF",
-                    border: "none",
-                    borderRadius: 12,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: inputTekst.trim() ? "pointer" : "default",
-                    fontFamily: "inherit",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Spørg →
-                </button>
-              </div>
-            </div>
-          </div>
+          {loading && <SkrivIndikator />}
+          <div ref={bundenRef} />
         </div>
-      );
-    }
+      </div>
 
-    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(TalMedDinOverenskomst));
-  </script>
+      {/* Inputfelt */}
+      <div style={{ borderTop: "1px solid #E5E7EB", background: "#FFF", padding: "12px 16px", flexShrink: 0 }}>
+        <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", gap: 10, alignItems: "center" }}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputTekst}
+            onChange={e => setInputTekst(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={loading}
+            placeholder={loading ? "Henter svar..." : "Stil et spørgsmål om din overenskomst..."}
+            style={{
+              flex: 1, padding: "12px 16px",
+              border: "1px solid #D1D5DB", borderRadius: 12,
+              fontSize: 14, fontFamily: "inherit", outline: "none",
+              background: loading ? "#F9FAFB" : "#FFF",
+            }}
+          />
+          <button
+            onClick={() => handleSend()}
+            disabled={!inputTekst.trim() || loading}
+            style={{
+              padding: "12px 20px",
+              background: (inputTekst.trim() && !loading) ? HK_ACCENT : "#D1D5DB",
+              color: "#FFF", border: "none", borderRadius: 12,
+              fontSize: 14, fontWeight: 600,
+              cursor: (inputTekst.trim() && !loading) ? "pointer" : "default",
+              fontFamily: "inherit", whiteSpace: "nowrap",
+              transition: "background 0.2s",
+            }}
+          >
+            {loading ? "..." : "Spørg →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(TalMedDinOverenskomst));
+</script>
 </body>
 </html>
